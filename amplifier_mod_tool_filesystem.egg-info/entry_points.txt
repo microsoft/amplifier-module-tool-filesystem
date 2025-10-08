@@ -1,0 +1,2 @@
+[amplifier.modules]
+tool-filesystem = amplifier_mod_tool_filesystem:mount

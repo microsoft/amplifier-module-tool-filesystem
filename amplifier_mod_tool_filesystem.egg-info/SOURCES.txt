@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+amplifier_mod_tool_filesystem/__init__.py
+amplifier_mod_tool_filesystem.egg-info/PKG-INFO
+amplifier_mod_tool_filesystem.egg-info/SOURCES.txt
+amplifier_mod_tool_filesystem.egg-info/dependency_links.txt
+amplifier_mod_tool_filesystem.egg-info/entry_points.txt
+amplifier_mod_tool_filesystem.egg-info/requires.txt
+amplifier_mod_tool_filesystem.egg-info/top_level.txt
