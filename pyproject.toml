@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "amplifier-module-tool-filesystem"
 version = "1.0.0"
-description = "Filesystem tools for Amplifier"
+description = "Reference tool module - Filesystem operations for Amplifier"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
