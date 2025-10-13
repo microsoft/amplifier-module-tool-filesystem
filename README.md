@@ -16,6 +16,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Windows
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
+
 ## Purpose
 
 Enables agents to read and write files within configured safe paths.
@@ -24,28 +25,34 @@ Enables agents to read and write files within configured safe paths.
 
 **Module Type:** Tool
 **Mount Point:** `tools`
-**Entry Point:** `amplifier_mod_tool_filesystem:mount`
+**Entry Point:** `amplifier_module_tool_filesystem:mount`
 
 ## Tools Provided
 
 ### `read`
+
 Read the contents of a file.
 
 **Input:**
+
 - `path` (string): File path to read
 
 **Output:**
+
 - File contents as string
 - Error if file not found or access denied
 
 ### `write`
+
 Write content to a file.
 
 **Input:**
+
 - `path` (string): File path to write
 - `content` (string): Content to write
 
 **Output:**
+
 - Success message with character count
 - Creates parent directories if needed
 
