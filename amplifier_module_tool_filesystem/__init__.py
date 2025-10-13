@@ -5,7 +5,6 @@ Filesystem tools with artifact events.
 import logging
 from pathlib import Path
 from typing import Any
-from typing import Optional
 
 from amplifier_core import ModuleCoordinator
 from amplifier_core import ToolResult
@@ -58,7 +57,7 @@ class ReadTool(BaseFsTool):
         try:
             data = p.read_text(encoding="utf-8")
             await self.hooks.emit(ARTIFACT_READ, {"data": {"path": str(p), "bytes": len(data.encode("utf-8"))}})
-            return ToolResult(success=True, data={"path": str(p), "content": data})
+            return ToolResult(success=True, output={"path": str(p), "content": data})
         except Exception as e:
             return ToolResult(success=False, error={"type": type(e).__name__, "message": str(e)})
 
@@ -85,7 +84,7 @@ class WriteTool(BaseFsTool):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
         await self.hooks.emit(ARTIFACT_WRITE, {"data": {"path": str(p), "bytes": len(content.encode("utf-8"))}})
-        return ToolResult(success=True, data={"path": str(p), "bytes": len(content.encode("utf-8"))})
+        return ToolResult(success=True, output={"path": str(p), "bytes": len(content.encode("utf-8"))})
 
 
 class EditTool(BaseFsTool):
@@ -110,4 +109,4 @@ class EditTool(BaseFsTool):
         with p.open("a", encoding="utf-8") as f:
             f.write(patch)
         await self.hooks.emit(ARTIFACT_WRITE, {"data": {"path": str(p), "bytes": len(patch.encode("utf-8"))}})
-        return ToolResult(success=True, data={"path": str(p), "appended": len(patch.encode("utf-8"))})
+        return ToolResult(success=True, output={"path": str(p), "appended": len(patch.encode("utf-8"))})

@@ -2,6 +2,20 @@
 
 Provides basic file operations for Amplifier agents.
 
+## Prerequisites
+
+- **Python 3.11+**
+- **[UV](https://github.com/astral-sh/uv)** - Fast Python package manager
+
+### Installing UV
+
+```bash
+# macOS/Linux/WSL
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 ## Purpose
 
 Enables agents to read and write files within configured safe paths.
