@@ -27,34 +27,73 @@ Enables agents to read and write files within configured safe paths.
 **Mount Point:** `tools`
 **Entry Point:** `amplifier_module_tool_filesystem:mount`
 
+## Module Structure
+
+The module is split into three specialized tools, each in its own file following the modular design philosophy:
+
+- `read.py` - ReadTool for reading files with line numbering and pagination
+- `write.py` - WriteTool for writing/overwriting files
+- `edit.py` - EditTool for exact string replacements
+
 ## Tools Provided
 
-### `read`
+### `read_file`
 
-Read the contents of a file.
-
-**Input:**
-
-- `path` (string): File path to read
-
-**Output:**
-
-- File contents as string
-- Error if file not found or access denied
-
-### `write`
-
-Write content to a file.
+Read the contents of a file with cat-n style line numbering and pagination support.
 
 **Input:**
 
-- `path` (string): File path to write
-- `content` (string): Content to write
+- `file_path` (string, required): Absolute path to the file to read
+- `offset` (integer, optional): Line number to start reading from (1-indexed). Use for large files.
+- `limit` (integer, optional): Number of lines to read. Defaults to 2000. Use for large files.
 
 **Output:**
 
-- Success message with character count
-- Creates parent directories if needed
+- File contents formatted with line numbers (cat -n style)
+- Lines longer than 2000 characters are truncated
+- Total line count and lines read
+- Warning if file is empty
+
+**Example:**
+```
+     1→# This is line 1
+     2→# This is line 2
+     3→# This is line 3
+```
+
+### `write_file`
+
+Write content to a file (overwrites if exists).
+
+**Input:**
+
+- `file_path` (string, required): Absolute path to the file to write
+- `content` (string, required): Content to write to the file
+
+**Output:**
+
+- Success with bytes written
+- Creates parent directories automatically if needed
+
+**Note:** You should read the file first before overwriting to avoid data loss.
+
+### `edit_file`
+
+Perform exact string replacements in files.
+
+**Input:**
+
+- `file_path` (string, required): Absolute path to the file to modify
+- `old_string` (string, required): The exact text to replace
+- `new_string` (string, required): The text to replace it with (must be different)
+- `replace_all` (boolean, optional): Replace all occurrences. Defaults to false. If false and multiple occurrences exist, operation fails.
+
+**Output:**
+
+- Success with number of replacements made and bytes written
+- Fails if old_string not found or not unique (unless replace_all=true)
+
+**Note:** Read the file first to see the exact text including indentation. When copying from read_file output, exclude the line number prefix (everything before and including the tab character).
 
 ## Configuration
 
