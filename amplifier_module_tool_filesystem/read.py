@@ -30,7 +30,9 @@ Usage:
     def __init__(self, config: dict[str, Any], coordinator: ModuleCoordinator):
         """Initialize ReadTool with configuration."""
         self.config = config
-        self.allowed_paths = config.get("allowed_paths", ["."])
+        # Read operations are permissive by default (None = allow all paths)
+        # This allows reading context files from package installations
+        self.allowed_read_paths = config.get("allowed_read_paths")
         self.coordinator = coordinator
         self.max_line_length = 2000
         self.default_line_limit = 2000
@@ -58,10 +60,20 @@ Usage:
         }
 
     def _is_allowed(self, path: Path) -> bool:
-        """Check if path is within allowed paths."""
+        """Check if path is within allowed read paths.
+
+        If allowed_read_paths is None, all reads are permitted (default).
+        Otherwise, checks if path is within any allowed directory or its subdirectories.
+        """
+        # No restrictions if allowed_read_paths is None (default)
+        if self.allowed_read_paths is None:
+            return True
+
+        # Check if path is within any allowed directory or its subdirectories
         resolved_path = path.resolve()
-        for allowed in self.allowed_paths:
+        for allowed in self.allowed_read_paths:
             allowed_resolved = Path(allowed).resolve()
+            # Allow if allowed_path is a parent of or equal to the target path
             if allowed_resolved in resolved_path.parents or allowed_resolved == resolved_path:
                 return True
         return False
@@ -100,10 +112,10 @@ Usage:
 
         path = Path(file_path)
 
-        # Check if path is allowed
+        # Check if path is allowed for reading
         if not self._is_allowed(path):
             return ToolResult(
-                success=False, error={"message": f"Access denied: {file_path} is not within allowed paths"}
+                success=False, error={"message": f"Access denied: {file_path} is not within allowed read paths"}
             )
 
         # Check if file exists

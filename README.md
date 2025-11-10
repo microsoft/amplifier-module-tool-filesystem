@@ -101,16 +101,34 @@ Perform exact string replacements in files.
 [[tools]]
 module = "tool-filesystem"
 config = {
-    allowed_paths = ["."],  # List of safe directory paths
+    # Read operations (permissive by default)
+    allowed_read_paths = null,  # null = allow all reads (default), or ["path1", "path2"]
+
+    # Write/Edit operations (restrictive by default)
+    allowed_write_paths = ["."],  # Default: current directory and subdirectories only
+
     require_approval = false
 }
 ```
 
+**Philosophy**: Reads are low-risk (consuming data), writes are high-risk (modifying system state).
+
 ## Security
 
-- Access restricted to `allowed_paths` only
-- Path traversal checks via `is_relative_to()`
-- No arbitrary file system access
+**Read operations (read_file)**:
+- Permissive by default (`allowed_read_paths = null` allows all reads)
+- Enables reading context files from package installations
+- Can be restricted with `allowed_read_paths = ["dir1", "dir2"]`
+
+**Write operations (write_file, edit_file)**:
+- Restrictive by default (`allowed_write_paths = ["."]`)
+- Current directory and all subdirectories allowed
+- Prevents unintended modifications outside project
+
+**Path validation**:
+- All paths resolved before checking
+- Subdirectory traversal supported (parent path check)
+- Path traversal attacks prevented
 
 ## Dependencies
 
