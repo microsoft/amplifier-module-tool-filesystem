@@ -14,8 +14,15 @@ class EditTool:
     name = "edit_file"
     description = """
 Performs exact string replacements in files.
+Supports @mention paths for accessing collection files, project files, and user files.
 
 Usage:
+- The file_path parameter accepts:
+  - Absolute paths: /home/user/file.md
+  - @mention paths: @project:config/settings.yaml
+  - @user:path - Shortcut to ~/.amplifier/{path}
+  - @project:path - Shortcut to .amplifier/{path}
+  - Note: Collection paths (@collection:) are typically read-only
 - You must use your read_file tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file.
 - When editing text from read_file tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
@@ -40,7 +47,7 @@ Usage:
             "properties": {
                 "file_path": {
                     "type": "string",
-                    "description": "The absolute path to the file to modify",
+                    "description": "The absolute path or @mention to the file to modify",
                 },
                 "old_string": {
                     "type": "string",
@@ -105,7 +112,29 @@ Usage:
                 success=False, error={"message": "old_string and new_string must be different (no changes to make)"}
             )
 
-        path = Path(file_path)
+        # Handle @mention paths
+        if file_path.startswith("@"):
+            # Get mention resolver from coordinator capabilities (app-layer provides)
+            mention_resolver = self.coordinator.get_capability("mention_resolver")
+
+            if mention_resolver is None:
+                return ToolResult(
+                    success=False,
+                    error={"message": "@mention paths require mention_resolver capability (not available)"},
+                )
+
+            resolved_path = mention_resolver.resolve(file_path)
+
+            if resolved_path is None:
+                return ToolResult(success=False, error={"message": f"@mention not found: {file_path}"})
+
+            # Cannot edit directories
+            if resolved_path.is_dir():
+                return ToolResult(success=False, error={"message": f"Cannot edit directory: {file_path}"})
+
+            path = resolved_path
+        else:
+            path = Path(file_path)
 
         # Check if path is allowed for editing
         if not self._is_allowed(path):

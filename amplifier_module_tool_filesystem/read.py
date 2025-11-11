@@ -13,16 +13,23 @@ class ReadTool:
 
     name = "read_file"
     description = """
-Reads a file from the local filesystem. You can access any file directly by using this tool.
-Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
+Reads a file or lists a directory from the local filesystem. You can access any file directly by using this tool.
+Supports @mention paths for accessing collection files, project files, and user files.
 
 Usage:
-- The file_path parameter must be an absolute path, not a relative path
-- By default, it reads up to 2000 lines starting from the beginning of the file
-- You can optionally specify a line offset and limit (especially handy for long files), but it's recommended to read the whole file by not providing these parameters
+- The file_path parameter accepts:
+  - Absolute paths: /home/user/file.md
+  - @mention paths: @toolkit:scenario-tools/blog-writer/README.md
+  - @mention directories: @toolkit:scenario-tools/blog-writer (returns directory listing)
+  - @collection:path - Collection resources (e.g., @foundation:context/file.md)
+  - @user:path - Shortcut to ~/.amplifier/{path}
+  - @project:path - Shortcut to .amplifier/{path}
+  - @~/path - User home directory
+- By default, reads up to 2000 lines starting from the beginning of the file
+- You can optionally specify a line offset and limit (especially handy for long files)
 - Any lines longer than 2000 characters will be truncated
 - Results are returned using cat -n format, with line numbers starting at 1
-- This tool can only read files, not directories. To read a directory, use an ls command via the bash tool.
+- For directories, returns a formatted listing showing DIR/FILE entries
 - You can call multiple tools in a single response. It is always better to speculatively read multiple potentially useful files in parallel.
 - If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
     """
@@ -45,7 +52,7 @@ Usage:
             "properties": {
                 "file_path": {
                     "type": "string",
-                    "description": "The absolute path to the file to read",
+                    "description": "The absolute path or @mention to the file/directory to read",
                 },
                 "offset": {
                     "type": "integer",
@@ -91,17 +98,17 @@ Usage:
 
     async def execute(self, input: dict[str, Any]) -> ToolResult:
         """
-        Read a file from the filesystem.
+        Read a file or directory from the filesystem.
 
         Args:
             input: {
-                "file_path": str - The absolute path to the file to read
+                "file_path": str - The absolute path or @mention to the file/directory to read
                 "offset": Optional[int] - Line number to start reading from (1-indexed)
                 "limit": Optional[int] - Number of lines to read
             }
 
         Returns:
-            ToolResult with formatted file content including line numbers
+            ToolResult with formatted file content or directory listing
         """
         file_path = input.get("file_path", "")
         offset = input.get("offset", 1)  # Default to line 1
@@ -110,7 +117,25 @@ Usage:
         if not file_path:
             return ToolResult(success=False, error={"message": "file_path is required"})
 
-        path = Path(file_path)
+        # Handle @mention paths
+        if file_path.startswith("@"):
+            # Get mention resolver from coordinator capabilities (app-layer provides)
+            mention_resolver = self.coordinator.get_capability("mention_resolver")
+
+            if mention_resolver is None:
+                return ToolResult(
+                    success=False,
+                    error={"message": "@mention paths require mention_resolver capability (not available)"},
+                )
+
+            resolved_path = mention_resolver.resolve(file_path)
+
+            if resolved_path is None:
+                return ToolResult(success=False, error={"message": f"@mention not found: {file_path}"})
+
+            path = resolved_path
+        else:
+            path = Path(file_path)
 
         # Check if path is allowed for reading
         if not self._is_allowed(path):
@@ -118,16 +143,35 @@ Usage:
                 success=False, error={"message": f"Access denied: {file_path} is not within allowed read paths"}
             )
 
-        # Check if file exists
+        # Check if path exists
         if not path.exists():
-            return ToolResult(success=False, error={"message": f"File not found: {file_path}"})
+            return ToolResult(success=False, error={"message": f"Path not found: {file_path}"})
 
-        # Check if it's a directory
+        # Handle directories - return formatted listing
         if path.is_dir():
-            return ToolResult(
-                success=False,
-                error={"message": f"Cannot read directory: {file_path}. Use ls command via bash tool for directories."},
-            )
+            try:
+                entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name))
+                lines = []
+                for entry in entries:
+                    entry_type = "DIR " if entry.is_dir() else "FILE"
+                    lines.append(f"  {entry_type} {entry.name}")
+
+                listing = "\n".join(lines)
+                output_text = f"Directory: {path}\n\n{listing}"
+
+                return ToolResult(
+                    success=True,
+                    output={
+                        "file_path": str(path),
+                        "content": output_text,
+                        "is_directory": True,
+                        "entry_count": len(entries),
+                    },
+                )
+            except Exception as e:
+                return ToolResult(
+                    success=False, error={"message": f"Error listing directory: {str(e)}", "type": type(e).__name__}
+                )
 
         try:
             # Read file content
