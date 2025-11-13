@@ -189,9 +189,7 @@ Usage:
             formatted_content = self._format_with_line_numbers(selected_lines, start_line=offset)
 
             # Emit artifact read event
-            await self.coordinator.hooks.emit(
-                ARTIFACT_READ, {"data": {"path": str(path), "bytes": len(content.encode("utf-8"))}}
-            )
+            await self.coordinator.hooks.emit(ARTIFACT_READ, {"path": str(path), "bytes": len(content.encode("utf-8"))})
 
             # Prepare output
             output = {

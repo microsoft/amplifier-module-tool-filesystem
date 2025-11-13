@@ -127,7 +127,7 @@ Usage:
             bytes_written = len(content.encode("utf-8"))
 
             # Emit artifact write event
-            await self.coordinator.hooks.emit(ARTIFACT_WRITE, {"data": {"path": str(path), "bytes": bytes_written}})
+            await self.coordinator.hooks.emit(ARTIFACT_WRITE, {"path": str(path), "bytes": bytes_written})
 
             return ToolResult(success=True, output={"file_path": str(path), "bytes": bytes_written})
 
