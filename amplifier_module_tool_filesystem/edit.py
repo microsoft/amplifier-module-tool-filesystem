@@ -34,10 +34,15 @@ Usage:
     def __init__(self, config: dict[str, Any], coordinator: ModuleCoordinator):
         """Initialize EditTool with configuration."""
         self.config = config
+        self.coordinator = coordinator
+
+        # Extract working directory for path resolution
+        # This is the session's amplified_dir, not the daemon's CWD
+        self.working_dir = Path(config.get("working_dir", "."))
+
         # Edit operations are restrictive by default (current directory only)
         # Protects against unintended file modifications outside project
         self.allowed_write_paths = config.get("allowed_write_paths", ["."])
-        self.coordinator = coordinator
 
     @property
     def input_schema(self) -> dict:
@@ -71,13 +76,25 @@ Usage:
 
         Checks if path is within any allowed directory or its subdirectories.
         Edit operations are always restricted for security.
+
+        Paths are resolved relative to working_dir (session's amplified_dir),
+        not the daemon's current working directory.
         """
         resolved_path = path.resolve()
+
         for allowed in self.allowed_write_paths:
-            allowed_resolved = Path(allowed).resolve()
+            allowed_path = Path(allowed)
+
+            # Resolve relative paths against working_dir, not daemon's CWD
+            if not allowed_path.is_absolute():
+                allowed_path = self.working_dir / allowed_path
+
+            allowed_resolved = allowed_path.resolve()
+
             # Allow if allowed_path is a parent of or equal to the target path
             if allowed_resolved in resolved_path.parents or allowed_resolved == resolved_path:
                 return True
+
         return False
 
     async def execute(self, input: dict[str, Any]) -> ToolResult:
