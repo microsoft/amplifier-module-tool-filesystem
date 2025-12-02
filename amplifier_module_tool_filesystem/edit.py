@@ -37,7 +37,6 @@ Usage:
         self.coordinator = coordinator
 
         # Extract working directory for path resolution
-        # This is the session's amplified_dir, not the daemon's CWD
         self.working_dir = Path(config.get("working_dir", "."))
 
         # Edit operations are restrictive by default (current directory only)
@@ -77,15 +76,13 @@ Usage:
         Checks if path is within any allowed directory or its subdirectories.
         Edit operations are always restricted for security.
 
-        Paths are resolved relative to working_dir (session's amplified_dir),
-        not the daemon's current working directory.
+        Paths are resolved relative to working_dir.
         """
         resolved_path = path.resolve()
 
         for allowed in self.allowed_write_paths:
             allowed_path = Path(allowed)
 
-            # Resolve relative paths against working_dir, not daemon's CWD
             if not allowed_path.is_absolute():
                 allowed_path = self.working_dir / allowed_path
 
