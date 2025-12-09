@@ -3,6 +3,9 @@
 Provides read, write, and edit tools for filesystem operations.
 """
 
+# Amplifier module metadata
+__amplifier_module_type__ = "tool"
+
 import logging
 from typing import Any
 
