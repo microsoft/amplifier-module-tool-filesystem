@@ -14,15 +14,13 @@ class WriteTool:
     name = "write_file"
     description = """
 Writes a file to the local filesystem.
-Supports @mention paths for accessing collection files, project files, and user files.
+Supports @mention paths for accessing bundle resources.
 
 Usage:
 - The file_path parameter accepts:
   - Absolute paths: /home/user/file.md
-  - @mention paths: @project:config/settings.yaml
-  - @user:path - Shortcut to ~/.amplifier/{path}
-  - @project:path - Shortcut to .amplifier/{path}
-  - Note: Collection paths (@collection:) are typically read-only
+  - Relative paths: ./docs/README.md
+  - @bundle-name:path - Bundle resources (e.g., @mybundle:docs/README.md)
 - This tool will overwrite the existing file if there is one at the provided path.
 - If this is an existing file, you MUST use the read_file tool first to read the file's contents. This tool will fail if you did not read the file first.
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.

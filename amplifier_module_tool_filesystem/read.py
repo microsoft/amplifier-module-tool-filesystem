@@ -14,17 +14,14 @@ class ReadTool:
     name = "read_file"
     description = """
 Reads a file or lists a directory from the local filesystem. You can access any file directly by using this tool.
-Supports @mention paths for accessing collection files, project files, and user files.
+Supports @mention paths for accessing bundle resources.
 
 Usage:
 - The file_path parameter accepts:
   - Absolute paths: /home/user/file.md
-  - @mention paths: @toolkit:scenario-tools/blog-writer/README.md
-  - @mention directories: @toolkit:scenario-tools/blog-writer (returns directory listing)
-  - @collection:path - Collection resources (e.g., @foundation:context/file.md)
-  - @user:path - Shortcut to ~/.amplifier/{path}
-  - @project:path - Shortcut to .amplifier/{path}
-  - @~/path - User home directory
+  - Relative paths: ./docs/README.md
+  - @bundle-name:path - Bundle resources (e.g., @mybundle:docs/README.md)
+  - @mention directories: @mybundle:docs (returns directory listing)
 - By default, reads up to 2000 lines starting from the beginning of the file
 - You can optionally specify a line offset and limit (especially handy for long files)
 - Any lines longer than 2000 characters will be truncated
