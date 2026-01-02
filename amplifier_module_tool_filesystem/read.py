@@ -132,7 +132,7 @@ Usage:
 
             path = resolved_path
         else:
-            path = Path(file_path)
+            path = Path(file_path).expanduser()
 
         # Check if path is allowed for reading
         if not self._is_allowed(path):
