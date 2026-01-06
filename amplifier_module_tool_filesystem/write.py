@@ -34,6 +34,7 @@ Usage:
         # Write operations are restrictive by default (current directory only)
         # Protects against unintended file modifications outside project
         self.allowed_write_paths = config.get("allowed_write_paths", ["."])
+        self.denied_write_paths = config.get("denied_write_paths", [])
         self.coordinator = coordinator
 
     @property
@@ -51,19 +52,17 @@ Usage:
             "required": ["file_path", "content"],
         }
 
-    def _is_allowed(self, path: Path) -> bool:
-        """Check if path is within allowed write paths.
-
-        Checks if path is within any allowed directory or its subdirectories.
-        Write operations are always restricted for security.
+    def _check_write_access(self, path: Path) -> tuple[bool, str | None]:
+        """Check if path is allowed for writing.
+        
+        Uses centralized validation that checks denied paths first,
+        then allowed paths. Deny always takes priority.
+        
+        Returns:
+            Tuple of (allowed: bool, error_message: str | None)
         """
-        resolved_path = path.resolve()
-        for allowed in self.allowed_write_paths:
-            allowed_resolved = Path(allowed).resolve()
-            # Allow if allowed_path is a parent of or equal to the target path
-            if allowed_resolved in resolved_path.parents or allowed_resolved == resolved_path:
-                return True
-        return False
+        from .path_validation import is_path_allowed
+        return is_path_allowed(path, self.allowed_write_paths, self.denied_write_paths)
 
     async def execute(self, input: dict[str, Any]) -> ToolResult:
         """
@@ -109,10 +108,9 @@ Usage:
             path = Path(file_path).expanduser()
 
         # Check if path is allowed for writing
-        if not self._is_allowed(path):
-            return ToolResult(
-                success=False, error={"message": f"Access denied: {file_path} is not within allowed write paths"}
-            )
+        allowed, error_msg = self._check_write_access(path)
+        if not allowed:
+            return ToolResult(success=False, error={"message": error_msg})
 
         try:
             # Create parent directories if they don't exist
