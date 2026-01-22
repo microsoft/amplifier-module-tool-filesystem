@@ -39,7 +39,7 @@ The module is split into three specialized tools, each in its own file following
 
 ### `read_file`
 
-Read the contents of a file with cat-n style line numbering and pagination support.
+Read the contents of a file with cat-n style line numbering and pagination support. Automatically handles both text and image files.
 
 **Input:**
 
@@ -49,16 +49,44 @@ Read the contents of a file with cat-n style line numbering and pagination suppo
 
 **Output:**
 
+**For text files:**
 - File contents formatted with line numbers (cat -n style)
 - Lines longer than 2000 characters are truncated
 - Total line count and lines read
 - Warning if file is empty
 
-**Example:**
+**For image files (.png, .jpg, .jpeg, .gif, .webp, .bmp):**
+- ImageBlock structure with base64-encoded image data
+- Automatically detects image files by extension
+- Compatible with vision-enabled AI providers (Claude, GPT-4V, etc.)
+- Size limit: 20MB (configurable)
+- Info warning for images >5MB
+
+**Example (text file):**
 ```
      1→# This is line 1
      2→# This is line 2
      3→# This is line 3
+```
+
+**Example (image file):**
+```json
+{
+  "type": "image",
+  "source": {
+    "type": "base64",
+    "media_type": "image/png",
+    "data": "<base64 encoded data>"
+  },
+  "file_path": "/path/to/image.png",
+  "size_bytes": 12345
+}
+```
+
+**Usage with @mentions:**
+```
+> Analyze @screenshot.png
+> Compare @diagram1.jpg and @diagram2.jpg
 ```
 
 ### `write_file`
