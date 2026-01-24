@@ -1,5 +1,6 @@
 """ReadTool - Read files from the local filesystem."""
 
+import base64
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,23 @@ class ReadTool:
     """Read files from the local filesystem with line numbering and pagination support."""
 
     name = "read_file"
+    
+    # Image extensions we support
+    IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'}
+    
+    # Map extensions to media types
+    MEDIA_TYPE_MAP = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.bmp': 'image/bmp',
+    }
+    
+    # Maximum image size (20MB) - warn if larger
+    MAX_IMAGE_SIZE_BYTES = 20 * 1024 * 1024
+    
     description = """
 Reads a file or lists a directory from the local filesystem. You can access any file directly by using this tool.
 Supports @mention paths for accessing bundle resources.
@@ -22,10 +40,14 @@ Usage:
   - Relative paths: ./docs/README.md
   - @bundle-name:path - Bundle resources (e.g., @mybundle:docs/README.md)
   - @mention directories: @mybundle:docs (returns directory listing)
-- By default, reads up to 2000 lines starting from the beginning of the file
-- You can optionally specify a line offset and limit (especially handy for long files)
-- Any lines longer than 2000 characters will be truncated
-- Results are returned using cat -n format, with line numbers starting at 1
+- For text files:
+  - By default, reads up to 2000 lines starting from the beginning of the file
+  - You can optionally specify a line offset and limit (especially handy for long files)
+  - Any lines longer than 2000 characters will be truncated
+  - Results are returned using cat -n format, with line numbers starting at 1
+- For image files (png, jpg, jpeg, gif, webp, bmp):
+  - Automatically detects image files and returns ImageBlock structure
+  - Images are base64 encoded for provider consumption
 - For directories, returns a formatted listing showing DIR/FILE entries
 - You can call multiple tools in a single response. It is always better to speculatively read multiple potentially useful files in parallel.
 - If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
@@ -82,6 +104,14 @@ Usage:
                 return True
         return False
 
+    def _is_image_file(self, path: Path) -> bool:
+        """Check if file is an image based on extension."""
+        return path.suffix.lower() in self.IMAGE_EXTENSIONS
+    
+    def _get_media_type(self, path: Path) -> str:
+        """Get media type for image file."""
+        return self.MEDIA_TYPE_MAP.get(path.suffix.lower(), 'image/jpeg')
+    
     def _format_with_line_numbers(self, lines: list[str], start_line: int) -> str:
         """Format lines with line numbers in cat -n style."""
         formatted_lines = []
@@ -168,6 +198,55 @@ Usage:
             except Exception as e:
                 return ToolResult(
                     success=False, error={"message": f"Error listing directory: {str(e)}", "type": type(e).__name__}
+                )
+
+        # Handle image files - return ImageBlock structure
+        if self._is_image_file(path):
+            try:
+                # Check file size first
+                file_size = path.stat().st_size
+                
+                # Warn if image is large
+                if file_size > self.MAX_IMAGE_SIZE_BYTES:
+                    size_mb = file_size / (1024 * 1024)
+                    return ToolResult(
+                        success=False,
+                        error={
+                            "message": f"Image file too large: {size_mb:.1f}MB (max {self.MAX_IMAGE_SIZE_BYTES / (1024 * 1024):.0f}MB). Consider resizing the image or using a smaller version.",
+                            "type": "ImageTooLarge",
+                            "size_bytes": file_size,
+                        },
+                    )
+                
+                # Read image as binary and base64 encode
+                image_data = path.read_bytes()
+                encoded_data = base64.b64encode(image_data).decode('utf-8')
+                media_type = self._get_media_type(path)
+                
+                # Emit artifact read event
+                await self.coordinator.hooks.emit(ARTIFACT_READ, {"path": str(path), "bytes": len(image_data)})
+                
+                # Return ImageBlock structure
+                output = {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": encoded_data,
+                    },
+                    "file_path": str(path),
+                    "size_bytes": len(image_data),
+                }
+                
+                # Add info message if image is reasonably large (>5MB)
+                if file_size > 5 * 1024 * 1024:
+                    size_mb = file_size / (1024 * 1024)
+                    output["info"] = f"Large image ({size_mb:.1f}MB) - processing may take a moment"
+                
+                return ToolResult(success=True, output=output)
+            except Exception as e:
+                return ToolResult(
+                    success=False, error={"message": f"Error reading image file: {str(e)}", "type": type(e).__name__}
                 )
 
         try:
