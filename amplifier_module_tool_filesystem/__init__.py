@@ -32,6 +32,15 @@ async def mount(coordinator: ModuleCoordinator, config: dict[str, Any] | None = 
     """
     config = config or {}
 
+    # Get session.working_dir capability if not explicitly configured
+    # This ensures relative paths are resolved against the session's working directory
+    # rather than the server process's current working directory
+    if "working_dir" not in config:
+        working_dir = coordinator.get_capability("session.working_dir")
+        if working_dir:
+            config["working_dir"] = working_dir
+            logger.debug(f"Using session.working_dir: {working_dir}")
+
     # Create tool instances
     tools = [
         ReadTool(config, coordinator),

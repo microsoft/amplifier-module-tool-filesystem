@@ -32,9 +32,13 @@ Usage:
     def __init__(self, config: dict[str, Any], coordinator: ModuleCoordinator):
         """Initialize EditTool with configuration."""
         self.config = config
+        # Working directory for resolving relative paths (from session.working_dir capability)
+        self.working_dir = config.get("working_dir")
         # Edit operations are restrictive by default (current directory only)
         # Protects against unintended file modifications outside project
-        self.allowed_write_paths = config.get("allowed_write_paths", ["."])
+        # If working_dir is set, use it as the default allowed path
+        default_allowed = [self.working_dir] if self.working_dir else ["."]
+        self.allowed_write_paths = config.get("allowed_write_paths", default_allowed)
         self.denied_write_paths = config.get("denied_write_paths", [])
         self.coordinator = coordinator
 
@@ -132,6 +136,9 @@ Usage:
             path = resolved_path
         else:
             path = Path(file_path).expanduser()
+            # Resolve relative paths against working_dir (from session.working_dir capability)
+            if not path.is_absolute() and self.working_dir:
+                path = Path(self.working_dir) / path
 
         # Check if path is allowed for editing
         allowed, error_msg = self._check_write_access(path)

@@ -40,6 +40,8 @@ Usage:
         self.coordinator = coordinator
         self.max_line_length = 2000
         self.default_line_limit = 2000
+        # Working directory for resolving relative paths (from session.working_dir capability)
+        self.working_dir = config.get("working_dir")
 
     @property
     def input_schema(self) -> dict:
@@ -133,6 +135,9 @@ Usage:
             path = resolved_path
         else:
             path = Path(file_path).expanduser()
+            # Resolve relative paths against working_dir (from session.working_dir capability)
+            if not path.is_absolute() and self.working_dir:
+                path = Path(self.working_dir) / path
 
         # Check if path is allowed for reading
         if not self._is_allowed(path):
