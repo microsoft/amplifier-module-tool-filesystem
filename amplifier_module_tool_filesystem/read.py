@@ -80,7 +80,10 @@ Usage:
         for allowed in self.allowed_read_paths:
             allowed_resolved = Path(allowed).resolve()
             # Allow if allowed_path is a parent of or equal to the target path
-            if allowed_resolved in resolved_path.parents or allowed_resolved == resolved_path:
+            if (
+                allowed_resolved in resolved_path.parents
+                or allowed_resolved == resolved_path
+            ):
                 return True
         return False
 
@@ -114,7 +117,10 @@ Usage:
         limit = input.get("limit", self.default_line_limit)
 
         if not file_path:
-            return ToolResult(success=False, error={"message": "file_path is required"})
+            error_msg = "file_path is required"
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         # Handle @mention paths
         if file_path.startswith("@"):
@@ -122,15 +128,22 @@ Usage:
             mention_resolver = self.coordinator.get_capability("mention_resolver")
 
             if mention_resolver is None:
+                error_msg = (
+                    "@mention paths require mention_resolver capability (not available)"
+                )
                 return ToolResult(
                     success=False,
-                    error={"message": "@mention paths require mention_resolver capability (not available)"},
+                    output=error_msg,
+                    error={"message": error_msg},
                 )
 
             resolved_path = mention_resolver.resolve(file_path)
 
             if resolved_path is None:
-                return ToolResult(success=False, error={"message": f"@mention not found: {file_path}"})
+                error_msg = f"@mention not found: {file_path}"
+                return ToolResult(
+                    success=False, output=error_msg, error={"message": error_msg}
+                )
 
             path = resolved_path
         else:
@@ -141,13 +154,19 @@ Usage:
 
         # Check if path is allowed for reading
         if not self._is_allowed(path):
+            error_msg = f"Access denied: {file_path} is not within allowed read paths"
             return ToolResult(
-                success=False, error={"message": f"Access denied: {file_path} is not within allowed read paths"}
+                success=False,
+                output=error_msg,
+                error={"message": error_msg},
             )
 
         # Check if path exists
         if not path.exists():
-            return ToolResult(success=False, error={"message": f"Path not found: {file_path}"})
+            error_msg = f"Path not found: {file_path}"
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         # Handle directories - return formatted listing
         if path.is_dir():
@@ -171,8 +190,11 @@ Usage:
                     },
                 )
             except Exception as e:
+                error_msg = f"Error listing directory: {str(e)}"
                 return ToolResult(
-                    success=False, error={"message": f"Error listing directory: {str(e)}", "type": type(e).__name__}
+                    success=False,
+                    output=error_msg,
+                    error={"message": error_msg, "type": type(e).__name__},
                 )
 
         try:
@@ -188,10 +210,15 @@ Usage:
             selected_lines = lines[start_idx:end_idx]
 
             # Format with line numbers
-            formatted_content = self._format_with_line_numbers(selected_lines, start_line=offset)
+            formatted_content = self._format_with_line_numbers(
+                selected_lines, start_line=offset
+            )
 
             # Emit artifact read event
-            await self.coordinator.hooks.emit(ARTIFACT_READ, {"path": str(path), "bytes": len(content.encode("utf-8"))})
+            await self.coordinator.hooks.emit(
+                ARTIFACT_READ,
+                {"path": str(path), "bytes": len(content.encode("utf-8"))},
+            )
 
             # Prepare output
             output = {
@@ -209,14 +236,21 @@ Usage:
             return ToolResult(success=True, output=output)
 
         except UnicodeDecodeError:
+            error_msg = (
+                f"Cannot read file: {file_path} (not a text file or encoding issue)"
+            )
             return ToolResult(
                 success=False,
+                output=error_msg,
                 error={
-                    "message": f"Cannot read file: {file_path} (not a text file or encoding issue)",
+                    "message": error_msg,
                     "type": "UnicodeDecodeError",
                 },
             )
         except Exception as e:
+            error_msg = f"Error reading file: {str(e)}"
             return ToolResult(
-                success=False, error={"message": f"Error reading file: {str(e)}", "type": type(e).__name__}
+                success=False,
+                output=error_msg,
+                error={"message": error_msg, "type": type(e).__name__},
             )

@@ -51,21 +51,25 @@ Usage:
                     "type": "string",
                     "description": "The absolute path or @mention to the file to write",
                 },
-                "content": {"type": "string", "description": "The content to write to the file"},
+                "content": {
+                    "type": "string",
+                    "description": "The content to write to the file",
+                },
             },
             "required": ["file_path", "content"],
         }
 
     def _check_write_access(self, path: Path) -> tuple[bool, str | None]:
         """Check if path is allowed for writing.
-        
+
         Uses centralized validation that checks denied paths first,
         then allowed paths. Deny always takes priority.
-        
+
         Returns:
             Tuple of (allowed: bool, error_message: str | None)
         """
         from .path_validation import is_path_allowed
+
         return is_path_allowed(path, self.allowed_write_paths, self.denied_write_paths)
 
     async def execute(self, input: dict[str, Any]) -> ToolResult:
@@ -85,7 +89,10 @@ Usage:
         content = input.get("content", "")
 
         if not file_path:
-            return ToolResult(success=False, error={"message": "file_path is required"})
+            error_msg = "file_path is required"
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         # Handle @mention paths
         if file_path.startswith("@"):
@@ -93,19 +100,29 @@ Usage:
             mention_resolver = self.coordinator.get_capability("mention_resolver")
 
             if mention_resolver is None:
+                error_msg = (
+                    "@mention paths require mention_resolver capability (not available)"
+                )
                 return ToolResult(
                     success=False,
-                    error={"message": "@mention paths require mention_resolver capability (not available)"},
+                    output=error_msg,
+                    error={"message": error_msg},
                 )
 
             resolved_path = mention_resolver.resolve(file_path)
 
             if resolved_path is None:
-                return ToolResult(success=False, error={"message": f"@mention not found: {file_path}"})
+                error_msg = f"@mention not found: {file_path}"
+                return ToolResult(
+                    success=False, output=error_msg, error={"message": error_msg}
+                )
 
             # Cannot write to directories
             if resolved_path.is_dir():
-                return ToolResult(success=False, error={"message": f"Cannot write to directory: {file_path}"})
+                error_msg = f"Cannot write to directory: {file_path}"
+                return ToolResult(
+                    success=False, output=error_msg, error={"message": error_msg}
+                )
 
             path = resolved_path
         else:
@@ -117,7 +134,9 @@ Usage:
         # Check if path is allowed for writing
         allowed, error_msg = self._check_write_access(path)
         if not allowed:
-            return ToolResult(success=False, error={"message": error_msg})
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         try:
             # Create parent directories if they don't exist
@@ -130,16 +149,25 @@ Usage:
             bytes_written = len(content.encode("utf-8"))
 
             # Emit artifact write event
-            await self.coordinator.hooks.emit(ARTIFACT_WRITE, {"path": str(path), "bytes": bytes_written})
+            await self.coordinator.hooks.emit(
+                ARTIFACT_WRITE, {"path": str(path), "bytes": bytes_written}
+            )
 
-            return ToolResult(success=True, output={"file_path": str(path), "bytes": bytes_written})
+            return ToolResult(
+                success=True, output={"file_path": str(path), "bytes": bytes_written}
+            )
 
         except OSError as e:
+            error_msg = f"OS error writing file: {str(e)}"
             return ToolResult(
                 success=False,
-                error={"message": f"OS error writing file: {str(e)}", "type": "OSError", "errno": e.errno},
+                output=error_msg,
+                error={"message": error_msg, "type": "OSError", "errno": e.errno},
             )
         except Exception as e:
+            error_msg = f"Error writing file: {str(e)}"
             return ToolResult(
-                success=False, error={"message": f"Error writing file: {str(e)}", "type": type(e).__name__}
+                success=False,
+                output=error_msg,
+                error={"message": error_msg, "type": type(e).__name__},
             )
