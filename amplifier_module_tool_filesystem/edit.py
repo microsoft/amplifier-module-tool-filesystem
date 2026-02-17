@@ -71,14 +71,15 @@ Usage:
 
     def _check_write_access(self, path: Path) -> tuple[bool, str | None]:
         """Check if path is allowed for writing.
-        
+
         Uses centralized validation that checks denied paths first,
         then allowed paths. Deny always takes priority.
-        
+
         Returns:
             Tuple of (allowed: bool, error_message: str | None)
         """
         from .path_validation import is_path_allowed
+
         return is_path_allowed(path, self.allowed_write_paths, self.denied_write_paths)
 
     async def execute(self, input: dict[str, Any]) -> ToolResult:
@@ -103,14 +104,25 @@ Usage:
 
         # Validation
         if not file_path:
-            return ToolResult(success=False, error={"message": "file_path is required"})
+            error_msg = "file_path is required"
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         if not old_string:
-            return ToolResult(success=False, error={"message": "old_string is required"})
+            error_msg = "old_string is required"
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         if old_string == new_string:
+            error_msg = (
+                "old_string and new_string must be different (no changes to make)"
+            )
             return ToolResult(
-                success=False, error={"message": "old_string and new_string must be different (no changes to make)"}
+                success=False,
+                output=error_msg,
+                error={"message": error_msg},
             )
 
         # Handle @mention paths
@@ -119,19 +131,29 @@ Usage:
             mention_resolver = self.coordinator.get_capability("mention_resolver")
 
             if mention_resolver is None:
+                error_msg = (
+                    "@mention paths require mention_resolver capability (not available)"
+                )
                 return ToolResult(
                     success=False,
-                    error={"message": "@mention paths require mention_resolver capability (not available)"},
+                    output=error_msg,
+                    error={"message": error_msg},
                 )
 
             resolved_path = mention_resolver.resolve(file_path)
 
             if resolved_path is None:
-                return ToolResult(success=False, error={"message": f"@mention not found: {file_path}"})
+                error_msg = f"@mention not found: {file_path}"
+                return ToolResult(
+                    success=False, output=error_msg, error={"message": error_msg}
+                )
 
             # Cannot edit directories
             if resolved_path.is_dir():
-                return ToolResult(success=False, error={"message": f"Cannot edit directory: {file_path}"})
+                error_msg = f"Cannot edit directory: {file_path}"
+                return ToolResult(
+                    success=False, output=error_msg, error={"message": error_msg}
+                )
 
             path = resolved_path
         else:
@@ -143,11 +165,16 @@ Usage:
         # Check if path is allowed for editing
         allowed, error_msg = self._check_write_access(path)
         if not allowed:
-            return ToolResult(success=False, error={"message": error_msg})
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         # Check if file exists
         if not path.exists():
-            return ToolResult(success=False, error={"message": f"File not found: {file_path}"})
+            error_msg = f"File not found: {file_path}"
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
 
         try:
             # Read current content
@@ -155,19 +182,26 @@ Usage:
 
             # Check if old_string exists
             if old_string not in content:
+                error_msg = f"old_string not found in file: {file_path}"
                 return ToolResult(
                     success=False,
-                    error={"message": f"old_string not found in file: {file_path}", "old_string": old_string},
+                    output=error_msg,
+                    error={"message": error_msg, "old_string": old_string},
                 )
 
             # Check uniqueness if not replace_all
             if not replace_all:
                 occurrences = content.count(old_string)
                 if occurrences > 1:
+                    error_msg = (
+                        f"old_string appears {occurrences} times in file."
+                        " Either provide more context to make it unique or set replace_all=true"
+                    )
                     return ToolResult(
                         success=False,
+                        output=error_msg,
                         error={
-                            "message": f"old_string appears {occurrences} times in file. Either provide more context to make it unique or set replace_all=true",
+                            "message": error_msg,
                             "occurrences": occurrences,
                             "old_string": old_string,
                         },
@@ -189,7 +223,9 @@ Usage:
             bytes_written = len(new_content.encode("utf-8"))
 
             # Emit artifact write event
-            await self.coordinator.hooks.emit(ARTIFACT_WRITE, {"path": str(path), "bytes": bytes_written})
+            await self.coordinator.hooks.emit(
+                ARTIFACT_WRITE, {"path": str(path), "bytes": bytes_written}
+            )
 
             return ToolResult(
                 success=True,
@@ -201,19 +237,28 @@ Usage:
             )
 
         except UnicodeDecodeError:
+            error_msg = (
+                f"Cannot read file: {file_path} (not a text file or encoding issue)"
+            )
             return ToolResult(
                 success=False,
+                output=error_msg,
                 error={
-                    "message": f"Cannot read file: {file_path} (not a text file or encoding issue)",
+                    "message": error_msg,
                     "type": "UnicodeDecodeError",
                 },
             )
         except OSError as e:
+            error_msg = f"OS error modifying file: {str(e)}"
             return ToolResult(
                 success=False,
-                error={"message": f"OS error modifying file: {str(e)}", "type": "OSError", "errno": e.errno},
+                output=error_msg,
+                error={"message": error_msg, "type": "OSError", "errno": e.errno},
             )
         except Exception as e:
+            error_msg = f"Error modifying file: {str(e)}"
             return ToolResult(
-                success=False, error={"message": f"Error modifying file: {str(e)}", "type": type(e).__name__}
+                success=False,
+                output=error_msg,
+                error={"message": error_msg, "type": type(e).__name__},
             )
