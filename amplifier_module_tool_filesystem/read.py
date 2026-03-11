@@ -8,6 +8,34 @@ from amplifier_core import ToolResult
 from amplifier_core.events import ARTIFACT_READ
 
 
+def _is_binary(path: Path, chunk_size: int = 8192) -> bool:
+    """Detect binary files by checking for null bytes in the first chunk.
+
+    Args:
+        path: Path to the file to check.
+        chunk_size: Number of bytes to read for detection.
+
+    Returns:
+        True if the file appears to be binary (contains null bytes).
+    """
+    try:
+        with open(path, "rb") as f:
+            chunk = f.read(chunk_size)
+        return b"\x00" in chunk
+    except OSError:
+        return False
+
+
+def _human_readable_size(size_bytes: int) -> str:
+    """Convert bytes to human-readable string."""
+    value: float = float(size_bytes)
+    for unit in ("B", "KB", "MB", "GB"):
+        if value < 1024:
+            return f"{int(value)} {unit}" if unit == "B" else f"{value:.1f} {unit}"
+        value /= 1024
+    return f"{value:.1f} TB"
+
+
 class ReadTool:
     """Read files from the local filesystem with line numbering and pagination support."""
 
@@ -197,6 +225,28 @@ Usage:
                     error={"message": error_msg, "type": type(e).__name__},
                 )
 
+        # Check for binary files before attempting text read
+        if _is_binary(path):
+            size = path.stat().st_size
+            suffix = path.suffix.lower()
+            binary_info = (
+                f"Binary file: {path.name}\n"
+                f"Type: {suffix or 'unknown'}\n"
+                f"Size: {_human_readable_size(size)}\n"
+                f"Cannot display binary file as text."
+            )
+            return ToolResult(
+                success=True,
+                output={
+                    "file_path": str(path),
+                    "content": binary_info,
+                    "is_binary": True,
+                    "total_lines": 0,
+                    "lines_read": 0,
+                    "offset": offset,
+                },
+            )
+
         try:
             # Read file content
             content = path.read_text(encoding="utf-8")
@@ -236,17 +286,40 @@ Usage:
             return ToolResult(success=True, output=output)
 
         except UnicodeDecodeError:
-            error_msg = (
-                f"Cannot read file: {file_path} (not a text file or encoding issue)"
-            )
-            return ToolResult(
-                success=False,
-                output=error_msg,
-                error={
-                    "message": error_msg,
-                    "type": "UnicodeDecodeError",
-                },
-            )
+            # Fallback for non-UTF-8 text files (e.g., ISO-8859-1 encoded)
+            try:
+                content = path.read_text(encoding="latin-1")
+            except Exception:
+                error_msg = (
+                    f"Cannot read file: {file_path} (not a text file or encoding issue)"
+                )
+                return ToolResult(
+                    success=False,
+                    output=error_msg,
+                    error={
+                        "message": error_msg,
+                        "type": "UnicodeDecodeError",
+                    },
+                )
+            else:
+                lines = content.splitlines()
+                start_idx = max(0, offset - 1)
+                end_idx = start_idx + limit
+                selected_lines = lines[start_idx:end_idx]
+                formatted_content = self._format_with_line_numbers(
+                    selected_lines, start_line=offset
+                )
+                return ToolResult(
+                    success=True,
+                    output={
+                        "file_path": str(path),
+                        "content": formatted_content,
+                        "total_lines": len(lines),
+                        "lines_read": len(selected_lines),
+                        "offset": offset,
+                        "encoding": "latin-1",
+                    },
+                )
         except Exception as e:
             error_msg = f"Error reading file: {str(e)}"
             return ToolResult(
