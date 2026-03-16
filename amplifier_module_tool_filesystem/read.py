@@ -1,11 +1,52 @@
-"""ReadTool - Read files from the local filesystem."""
+"""ReadTool - Read files from the local filesystem.
+
+PR7 fixes applied:
+  1. _is_allowed() — resolve(strict=True) so symlinks are followed to their
+     real target before the allow-list comparison (mirrors path_validation.py).
+  2. Binary-file detection — _is_binary() reads the first 8 KiB and looks for
+     null bytes; binary files return a metadata-only ToolResult instead of
+     crashing with a UnicodeDecodeError.
+  3. UnicodeDecodeError fallback — latin-1 is tried before returning an error
+     so files with 8-bit encodings still render rather than hard-failing.
+"""
 
 from pathlib import Path
 from typing import Any
 
-from amplifier_core import ModuleCoordinator
-from amplifier_core import ToolResult
-from amplifier_core.events import ARTIFACT_READ
+from amplifier_core import ModuleCoordinator  # type: ignore[import-untyped]
+from amplifier_core import ToolResult  # type: ignore[import-untyped]
+from amplifier_core.events import ARTIFACT_READ  # type: ignore[import-untyped]
+
+
+# ---------------------------------------------------------------------------
+# PR7 Fix 2 — binary detection helper
+# ---------------------------------------------------------------------------
+
+
+def _is_binary(filepath: Path | str, sample_size: int = 8192) -> bool:
+    """Detect binary files by scanning for null bytes.
+
+    Reads up to *sample_size* bytes from the start of the file and returns
+    True if a null byte (0x00) is found.  Null bytes almost never appear in
+    legitimate text files but are extremely common in compiled, compressed, or
+    media files.
+
+    Args:
+        filepath: Path to inspect.
+        sample_size: Number of bytes to sample (default 8 KiB).
+
+    Returns:
+        True  — file is almost certainly binary.
+        False — file looks textual (or could not be opened).
+    """
+    try:
+        with open(filepath, "rb") as f:
+            chunk = f.read(sample_size)
+            if b"\x00" in chunk:
+                return True
+        return False
+    except OSError:
+        return False
 
 
 class ReadTool:
@@ -70,15 +111,28 @@ Usage:
 
         If allowed_read_paths is None, all reads are permitted (default).
         Otherwise, checks if path is within any allowed directory or its subdirectories.
+
+        PR7: resolve(strict=True) ensures symlinks are followed to their real
+        filesystem target before any allow-list comparison, preventing a
+        symlink placed inside an allowed directory from granting read access
+        to content that lives outside it.
         """
         # No restrictions if allowed_read_paths is None (default)
         if self.allowed_read_paths is None:
             return True
 
-        # Check if path is within any allowed directory or its subdirectories
-        resolved_path = path.resolve()
+        # PR7: strict=True follows symlinks; OSError means path doesn't exist → deny.
+        try:
+            resolved_path = path.resolve(strict=True)
+        except OSError:
+            return False
+
         for allowed in self.allowed_read_paths:
-            allowed_resolved = Path(allowed).resolve()
+            try:
+                allowed_resolved = Path(allowed).resolve(strict=True)
+            except OSError:
+                # Configured allowed path doesn't exist on this system — skip it.
+                continue
             # Allow if allowed_path is a parent of or equal to the target path
             if (
                 allowed_resolved in resolved_path.parents
@@ -198,8 +252,46 @@ Usage:
                 )
 
         try:
-            # Read file content
-            content = path.read_text(encoding="utf-8")
+            # PR7 Fix 2 — Binary file detection.
+            # Check for null bytes before attempting text decoding.  Binary
+            # files (executables, images, compiled artifacts, archives, …) are
+            # returned as a metadata-only result rather than crashing.
+            if _is_binary(path):
+                size = path.stat().st_size
+                suffix = path.suffix.lower()
+                return ToolResult(
+                    success=True,
+                    output={
+                        "content": (
+                            f"Binary file ({suffix or 'unknown type'}, {size:,} bytes)"
+                            " — cannot display as text."
+                        ),
+                        "file_path": str(path),
+                        "is_binary": True,
+                        "size_bytes": size,
+                    },
+                )
+
+            # PR7 Fix 3 — Encoding fallback.
+            # Try UTF-8 first; fall back to latin-1 for 8-bit encoded files
+            # (ISO-8859-1 can decode any byte sequence, so it never raises).
+            try:
+                content = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                # Try latin-1 as fallback
+                try:
+                    content = path.read_text(encoding="latin-1")
+                except Exception:
+                    size = path.stat().st_size
+                    return ToolResult(
+                        success=True,
+                        output={
+                            "content": f"File cannot be decoded as text ({size:,} bytes).",
+                            "file_path": str(path),
+                            "is_binary": True,
+                        },
+                    )
+
             lines = content.splitlines()
 
             # Handle offset and limit (convert to 0-indexed)
@@ -235,18 +327,6 @@ Usage:
 
             return ToolResult(success=True, output=output)
 
-        except UnicodeDecodeError:
-            error_msg = (
-                f"Cannot read file: {file_path} (not a text file or encoding issue)"
-            )
-            return ToolResult(
-                success=False,
-                output=error_msg,
-                error={
-                    "message": error_msg,
-                    "type": "UnicodeDecodeError",
-                },
-            )
         except Exception as e:
             error_msg = f"Error reading file: {str(e)}"
             return ToolResult(
