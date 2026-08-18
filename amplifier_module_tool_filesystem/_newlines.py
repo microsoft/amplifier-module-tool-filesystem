@@ -30,11 +30,22 @@ from pathlib import Path
 def detect_newline(text: str) -> str:
     """Return the dominant on-disk line ending: ``\\r\\n``, ``\\r``, or ``\\n``.
 
-    ``\\n`` is the default when the text has no line breaks (or is LF-only).
+    Dominance is by **count**, not by first appearance. This matters for mixed
+    files: a file with 999 LF lines and one stray CRLF is an LF file with a
+    stray CR in it, and must stay that way. Picking CRLF there would rewrite
+    all 1000 lines on the next edit -- exactly the spurious whole-file diff
+    these helpers exist to prevent.
+
+    ``\\n`` is the default when the text has no line breaks. Ties favour
+    ``\\r\\n``, since silently dropping a CR is the more destructive error.
     """
-    if "\r\n" in text:
+    crlf = text.count("\r\n")
+    # Bare LF/CR only -- every CRLF contributes one of each, so discount them.
+    lf = text.count("\n") - crlf
+    cr = text.count("\r") - crlf
+    if crlf and crlf >= lf and crlf >= cr:
         return "\r\n"
-    if "\r" in text:
+    if cr and cr > lf:
         return "\r"
     return "\n"
 
@@ -56,14 +67,22 @@ def read_text_preserving(path: Path) -> tuple[str, str]:
 def write_text_preserving(path: Path, text: str, newline: str = "\n") -> int:
     """Write UTF-8 text using ``newline``, with NO platform translation.
 
-    ``text`` is first normalized to ``\\n`` (so any stray CRLF introduced by a
-    replacement can't double up into ``\\r\\r\\n``), then every ``\\n`` becomes
-    ``newline``. With the default ``newline="\\n"`` the bytes written are
-    identical to a plain LF write on every platform.
+    When ``newline`` is not ``\\n``, ``text`` is first normalized to ``\\n`` (so
+    a stray CRLF introduced by a replacement can't double up into
+    ``\\r\\r\\n``), then every ``\\n`` becomes ``newline``.
+
+    When ``newline`` is ``\\n`` -- a new file, or an LF file -- ``text`` is
+    written **verbatim**. There is nothing to expand, so normalizing could only
+    destroy CR bytes the caller deliberately supplied (an HTTP or MIME fixture,
+    say). This is also exactly what the previous ``write_text`` did on POSIX,
+    so the common case really is byte-for-byte unchanged.
 
     Returns the number of bytes written.
     """
-    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-    data = normalized.replace("\n", newline).encode("utf-8")
+    if newline == "\n":
+        data = text.encode("utf-8")
+    else:
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+        data = normalized.replace("\n", newline).encode("utf-8")
     path.write_bytes(data)
     return len(data)

@@ -143,3 +143,73 @@ async def test_write_new_file_is_lf(tmp_path):
     )
     assert res.success, res
     assert f.read_bytes() == b"a\nb\n"
+
+
+# --------------------------------------------------------------------------
+# Mixed-ending files: dominance must be by count, not first appearance
+# --------------------------------------------------------------------------
+
+
+def test_detect_newline_is_by_count_not_first_appearance():
+    """A mostly-LF file with a stray CRLF is an LF file.
+
+    First-appearance detection would call this CRLF and reflow every line on
+    the next edit -- the exact whole-file diff this module exists to prevent.
+    """
+    mostly_lf = "a\r\n" + "b\n" * 999
+    assert detect_newline(mostly_lf) == "\n"
+
+    mostly_crlf = "a\n" + "b\r\n" * 999
+    assert detect_newline(mostly_crlf) == "\r\n"
+
+    # Bare CR (classic Mac) only wins when it actually dominates.
+    assert detect_newline("a\rb\rc\nd") == "\r"
+    assert detect_newline("a\rb\nc\nd") == "\n"
+
+
+def test_write_preserving_lf_writes_verbatim(tmp_path):
+    """newline='\\n' must not strip CR bytes the caller deliberately supplied."""
+    p = tmp_path / "fixture.http"
+    n = write_text_preserving(p, "GET / HTTP/1.1\r\nHost: x\r\n\r\nbody\n")
+    assert p.read_bytes() == b"GET / HTTP/1.1\r\nHost: x\r\n\r\nbody\n"
+    assert n == len(b"GET / HTTP/1.1\r\nHost: x\r\n\r\nbody\n")
+
+
+@pytest.mark.asyncio
+async def test_edit_mostly_lf_file_does_not_reflow_to_crlf(tmp_path):
+    """One stray CRLF must not flip the whole file to CRLF.
+
+    Note the residual, deliberate limitation: these helpers normalize for
+    matching and restore ONE convention, so a mixed file converges to its
+    dominant ending -- the stray CRLF here becomes LF. That is a 1-line diff
+    that heals the inconsistency. Before count-based dominance it was the
+    opposite and far worse: all 51 LF lines were rewritten to CRLF. Fully
+    byte-preserving mixed files would require splicing into the raw text by
+    offset, which is not worth the machinery for already-pathological files.
+    """
+    f = tmp_path / "mixed.txt"
+    before = b"alpha\r\n" + b"".join(b"line%d\n" % i for i in range(50)) + b"beta\n"
+    f.write_bytes(before)
+
+    res = await _tool(EditTool, tmp_path).execute(
+        {"file_path": str(f), "old_string": "beta", "new_string": "BETA"}
+    )
+    assert res.success, res
+
+    after = f.read_bytes()
+    # The 51 untouched LF lines stayed LF -- no whole-file reflow to CRLF.
+    assert b"\r" not in after
+    assert after == before.replace(b"beta\n", b"BETA\n").replace(b"\r\n", b"\n")
+    # Blast radius: one stray CR normalized, not 51 lines rewritten.
+    assert after.count(b"\n") == before.count(b"\n")
+
+
+@pytest.mark.asyncio
+async def test_write_new_file_preserves_caller_crlf(tmp_path):
+    """write_file to a NEW file writes content verbatim, CR bytes included."""
+    f = tmp_path / "fixture.http"
+    res = await _tool(WriteTool, tmp_path).execute(
+        {"file_path": str(f), "content": "GET / HTTP/1.1\r\nHost: x\r\n"}
+    )
+    assert res.success, res
+    assert f.read_bytes() == b"GET / HTTP/1.1\r\nHost: x\r\n"
