@@ -3,9 +3,10 @@
 from pathlib import Path
 from typing import Any
 
-from amplifier_core import ModuleCoordinator
-from amplifier_core import ToolResult
+from amplifier_core import ModuleCoordinator, ToolResult
 from amplifier_core.events import ARTIFACT_WRITE
+
+from ._newlines import read_text_preserving, write_text_preserving
 
 
 class EditTool:
@@ -177,8 +178,10 @@ Usage:
             )
 
         try:
-            # Read current content
-            content = path.read_text(encoding="utf-8")
+            # Read current content, preserving the file's on-disk line endings.
+            # content is LF-normalized for matching; `newline` is what the file
+            # actually used, restored on write so an edit never reflows CRLF<->LF.
+            content, newline = read_text_preserving(path)
 
             # Check if old_string exists
             if old_string not in content:
@@ -216,11 +219,9 @@ Usage:
                 new_content = content.replace(old_string, new_string, 1)
                 replacements_made = 1
 
-            # Write updated content
-            path.write_text(new_content, encoding="utf-8")
-
-            # Calculate bytes written
-            bytes_written = len(new_content.encode("utf-8"))
+            # Write updated content, restoring the file's original line endings
+            # (no platform \n->os.linesep translation). Returns bytes written.
+            bytes_written = write_text_preserving(path, new_content, newline)
 
             # Emit artifact write event
             await self.coordinator.hooks.emit(
@@ -249,14 +250,14 @@ Usage:
                 },
             )
         except OSError as e:
-            error_msg = f"OS error modifying file: {str(e)}"
+            error_msg = f"OS error modifying file: {e!s}"
             return ToolResult(
                 success=False,
                 output=error_msg,
                 error={"message": error_msg, "type": "OSError", "errno": e.errno},
             )
         except Exception as e:
-            error_msg = f"Error modifying file: {str(e)}"
+            error_msg = f"Error modifying file: {e!s}"
             return ToolResult(
                 success=False,
                 output=error_msg,
