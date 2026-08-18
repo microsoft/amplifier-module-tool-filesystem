@@ -3,9 +3,10 @@
 from pathlib import Path
 from typing import Any
 
-from amplifier_core import ModuleCoordinator
-from amplifier_core import ToolResult
+from amplifier_core import ModuleCoordinator, ToolResult
 from amplifier_core.events import ARTIFACT_WRITE
+
+from ._newlines import detect_newline, write_text_preserving
 
 
 class WriteTool:
@@ -142,11 +143,16 @@ Usage:
             # Create parent directories if they don't exist
             path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Write content to file
-            path.write_text(content, encoding="utf-8")
-
-            # Calculate bytes written
-            bytes_written = len(content.encode("utf-8"))
+            # Preserve an existing file's line-ending convention on overwrite;
+            # new files are written exactly as given (LF as the caller provided).
+            # Either way, no platform \n->os.linesep translation is applied.
+            newline = "\n"
+            if path.exists():
+                try:
+                    newline = detect_newline(path.read_bytes().decode("utf-8"))
+                except (OSError, UnicodeDecodeError):
+                    newline = "\n"
+            bytes_written = write_text_preserving(path, content, newline)
 
             # Emit artifact write event
             await self.coordinator.hooks.emit(
@@ -158,14 +164,14 @@ Usage:
             )
 
         except OSError as e:
-            error_msg = f"OS error writing file: {str(e)}"
+            error_msg = f"OS error writing file: {e!s}"
             return ToolResult(
                 success=False,
                 output=error_msg,
                 error={"message": error_msg, "type": "OSError", "errno": e.errno},
             )
         except Exception as e:
-            error_msg = f"Error writing file: {str(e)}"
+            error_msg = f"Error writing file: {e!s}"
             return ToolResult(
                 success=False,
                 output=error_msg,
