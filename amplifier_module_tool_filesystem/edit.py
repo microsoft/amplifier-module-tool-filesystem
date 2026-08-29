@@ -18,10 +18,8 @@ Performs exact string replacements in files.
 Supports @mention paths for accessing bundle resources.
 
 Usage:
-- The file_path parameter accepts:
-  - Absolute paths: /home/user/file.md
-  - Relative paths: ./docs/README.md
-  - @bundle-name:path - Bundle resources (e.g., @mybundle:docs/README.md)
+- The file_path parameter accepts absolute paths, relative paths, and @bundle-name:path
+  bundle resources — see the read_file tool description for the full form.
 - You must use your read_file tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file.
 - When editing text from read_file tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
