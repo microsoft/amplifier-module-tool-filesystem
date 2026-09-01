@@ -37,6 +37,10 @@ Usage:
         # If working_dir is set, use it as the default allowed path
         default_allowed = [self.working_dir] if self.working_dir else ["."]
         self.allowed_write_paths = config.get("allowed_write_paths", default_allowed)
+        # Optional equality-only grant: authorizes exactly one file each,
+        # never a descendant, sibling, or parent. Defaults to empty, which
+        # is behaviorally identical to configs that predate this option.
+        self.allowed_write_files = config.get("allowed_write_files", [])
         self.denied_write_paths = config.get("denied_write_paths", [])
         self.coordinator = coordinator
 
@@ -69,7 +73,12 @@ Usage:
         """
         from .path_validation import is_path_allowed
 
-        return is_path_allowed(path, self.allowed_write_paths, self.denied_write_paths)
+        return is_path_allowed(
+            path,
+            self.allowed_write_paths,
+            self.denied_write_paths,
+            self.allowed_write_files,
+        )
 
     async def execute(self, input: dict[str, Any]) -> ToolResult:
         """

@@ -107,6 +107,12 @@ config = {
     # Write/Edit operations (restrictive by default)
     allowed_write_paths = ["."],  # Default: current directory and subdirectories only
 
+    # Optional: narrow, equality-only grants for individual files that live
+    # outside allowed_write_paths (e.g. a single engine-managed status file).
+    # Each entry authorizes EXACTLY that one file -- never its descendants,
+    # siblings, or parent directory. Defaults to [] (no exact-file grants).
+    allowed_write_files = [],
+
     require_approval = false
 }
 ```
@@ -129,6 +135,46 @@ config = {
 - All paths resolved before checking
 - Subdirectory traversal supported (parent path check)
 - Path traversal attacks prevented
+
+**Exact-file grants (`allowed_write_files`)**:
+
+- **Purpose**: sometimes a caller needs to authorize writing to exactly one
+  file that lives *outside* the directories granted by `allowed_write_paths`
+  -- for example, a single engine-managed status file in a coordination
+  directory the tool should otherwise never touch. Listing that whole
+  coordination directory in `allowed_write_paths` would grant every path
+  beneath it; `allowed_write_files` grants only the one named file.
+- **Equality-only matching**: unlike `allowed_write_paths` (a directory-prefix
+  match -- an entry also authorizes everything beneath it), each
+  `allowed_write_files` entry is matched by **exact equality only** after the
+  same normalization (`~` expansion + `resolve()`) used everywhere else in
+  this module. It does **not** authorize:
+  - descendants (e.g. the file later becomes a directory and gains children)
+  - siblings in the same directory
+  - the parent directory
+  - any other path, however similar
+- **Deny still wins**: `denied_write_paths` is checked before *both*
+  `allowed_write_paths` and `allowed_write_files`. A denied directory that
+  contains an `allowed_write_files` entry still blocks that file.
+- **Non-existent targets are fine**: matching uses non-strict
+  `Path.resolve()`, exactly like the rest of this module, so a brand-new
+  file (parent directory not yet created) can still match -- this is the
+  common case the option exists to support (e.g. an engine writing a fresh
+  status file on first run). `write_file`'s existing `mkdir(parents=True)`
+  still creates the missing parent directories as usual.
+- **Symlinks**: both the write target and each configured entry are
+  resolved (symlinks followed to their real target) before comparison, so a
+  symlink at the leaf on either side compares by real path -- consistent
+  with how `allowed_write_paths`/`denied_write_paths` already behave.
+- **Backward compatible**: omitting `allowed_write_files`, or leaving it
+  `[]`, is behaviorally identical to configurations that predate this
+  option -- no exact-file grants are added, and `allowed_write_paths` /
+  `denied_write_paths` behavior is unchanged.
+- **Scope of guarantee**: this is tool-level least privilege for
+  `write_file`/`edit_file`, not a sandbox or process isolation boundary. A
+  session that also has a shell/bash tool can already reach paths this
+  module would deny; `allowed_write_files` only narrows what these two
+  specific tools will do.
 
 ## Dependencies
 
