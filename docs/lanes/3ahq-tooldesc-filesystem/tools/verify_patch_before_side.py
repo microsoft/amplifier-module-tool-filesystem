@@ -47,7 +47,6 @@ from __future__ import annotations
 import argparse
 import ast
 import subprocess
-import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
