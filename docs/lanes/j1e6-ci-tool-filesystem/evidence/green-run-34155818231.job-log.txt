@@ -1,0 +1,76 @@
+Lint (ruff 0.15.11)	Lint	﻿2026-09-07T19:30:18.6487177Z ##[group]Run uvx ruff@0.15.11 check .
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:18.6487652Z uvx ruff@0.15.11 check .
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:18.6532869Z shell: /usr/bin/bash -e {0}
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:18.6533241Z env:
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:18.6533617Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:18.6534000Z ##[endgroup]
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:18.9312589Z Downloading ruff (10.8MiB)
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:19.0359118Z  Downloaded ruff
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:19.0383491Z Installed 1 package in 1ms
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:30:19.0950021Z All checks passed!
+pytest (ubuntu-latest, py3.12)	Run test suite	﻿2026-09-07T19:30:20.6973677Z ##[group]Run uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:20.6974115Z uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:20.7011856Z shell: /usr/bin/bash -e {0}
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:20.7012175Z env:
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:20.7012420Z   UV_PYTHON: 3.12
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:20.7012962Z   VIRTUAL_ENV: /home/runner/work/amplifier-module-tool-filesystem/amplifier-module-tool-filesystem/.venv
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:20.7013616Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:20.7013977Z ##[endgroup]
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:21.6246682Z ..............................                                           [100%]
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:30:21.6247417Z 30 passed in 0.16s
+pytest (ubuntu-latest, py3.13)	Run test suite	﻿2026-09-07T19:30:22.2248618Z ##[group]Run uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:22.2248996Z uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:22.2284285Z shell: /usr/bin/bash -e {0}
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:22.2284811Z env:
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:22.2284997Z   UV_PYTHON: 3.13
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:22.2285450Z   VIRTUAL_ENV: /home/runner/work/amplifier-module-tool-filesystem/amplifier-module-tool-filesystem/.venv
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:22.2286004Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:22.2286303Z ##[endgroup]
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:23.2725933Z ..............................                                           [100%]
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:30:23.2726566Z 30 passed in 0.14s
+pytest (windows-latest, py3.13)	Run test suite	﻿2026-09-07T19:30:31.9704869Z ##[group]Run uv run --frozen pytest -q
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9705274Z uv run --frozen pytest -q
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9823592Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9823965Z env:
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9824173Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9824485Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9824724Z   UV_PYTHON: 3.13
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9825100Z   VIRTUAL_ENV: D:\a\amplifier-module-tool-filesystem\amplifier-module-tool-filesystem\.venv
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9825578Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:31.9825825Z ##[endgroup]
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:35.4892917Z ..............................                                           [100%]
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:30:35.4893527Z 30 passed in 0.39s
+pytest (ubuntu-latest, py3.11)	Run test suite	﻿2026-09-07T19:30:23.1566933Z ##[group]Run uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:23.1567370Z uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:23.1592059Z shell: /usr/bin/bash -e {0}
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:23.1592365Z env:
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:23.1592588Z   UV_PYTHON: 3.11
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:23.1593187Z   VIRTUAL_ENV: /home/runner/work/amplifier-module-tool-filesystem/amplifier-module-tool-filesystem/.venv
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:23.1593741Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:23.1594054Z ##[endgroup]
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:24.1101683Z ..............................                                           [100%]
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:30:24.1102289Z 30 passed in 0.14s
+pytest (windows-latest, py3.11)	Run test suite	﻿2026-09-07T19:30:29.1936523Z ##[group]Run uv run --frozen pytest -q
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.1936931Z uv run --frozen pytest -q
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2042664Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2043010Z env:
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2043212Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2043514Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2043749Z   UV_PYTHON: 3.11
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2044126Z   VIRTUAL_ENV: D:\a\amplifier-module-tool-filesystem\amplifier-module-tool-filesystem\.venv
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2044602Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:29.2044846Z ##[endgroup]
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:31.3001983Z ..............................                                           [100%]
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:30:31.3003128Z 30 passed in 0.27s
+pytest (windows-latest, py3.12)	Run test suite	﻿2026-09-07T19:30:35.6196616Z ##[group]Run uv run --frozen pytest -q
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6197062Z uv run --frozen pytest -q
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6301312Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6302022Z env:
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6302275Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6302626Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6303085Z   UV_PYTHON: 3.12
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6303571Z   VIRTUAL_ENV: D:\a\amplifier-module-tool-filesystem\amplifier-module-tool-filesystem\.venv
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6304107Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:35.6304391Z ##[endgroup]
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:38.2171238Z ..............................                                           [100%]
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:30:38.2171896Z 30 passed in 0.29s

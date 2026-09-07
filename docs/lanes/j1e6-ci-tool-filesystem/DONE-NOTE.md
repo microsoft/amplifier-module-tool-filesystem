@@ -55,8 +55,13 @@ Two deliberate defects, one per job, so each job proved its own gate:
 
 Verbatim failed-job log committed at `evidence/red-run-34155616639.job-log.txt`.
 
-**GREEN run: <https://github.com/microsoft/amplifier-module-tool-filesystem/actions/runs/GREEN_RUN_ID>**
-(see PR body for the authoritative pair)
+**GREEN run: <https://github.com/microsoft/amplifier-module-tool-filesystem/actions/runs/34155818231>**
+(PR #14, head `04bbeef`) — all **7** checks `success`: `All checks passed!` in the lint job,
+and `30 passed` on every one of the six test legs (ubuntu + windows × 3.11/3.12/3.13).
+Decisive log lines committed at `evidence/green-run-34155818231.job-log.txt`.
+
+Because this note itself is committed on the same branch, the *final* head carries its own
+green run — quoted in the PR body alongside the two above.
 
 **Scratch cleanup — verified, not assumed.** PR #13 `state=CLOSED`;
 `git ls-remote --heads origin ci/red-proof-j1e6` returns **0 lines**.
