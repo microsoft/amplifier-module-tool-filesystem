@@ -1,0 +1,34 @@
+{
+  "base": "aeadf4e3d1e2308415166ebccdad7fda17d6db04",
+  "rows": [
+    {
+      "tool": "read_file",
+      "file": "amplifier_module_tool_filesystem/read.py",
+      "stock_chars": 1074,
+      "ship_chars": 725,
+      "saved_chars": 349,
+      "flags": [],
+      "unreviewed_flags": []
+    },
+    {
+      "tool": "write_file",
+      "file": "amplifier_module_tool_filesystem/write.py",
+      "stock_chars": 867,
+      "ship_chars": 567,
+      "saved_chars": 300,
+      "flags": [],
+      "unreviewed_flags": []
+    },
+    {
+      "tool": "edit_file",
+      "file": "amplifier_module_tool_filesystem/edit.py",
+      "stock_chars": 1345,
+      "ship_chars": 923,
+      "saved_chars": 422,
+      "flags": [
+        "content"
+      ],
+      "unreviewed_flags": []
+    }
+  ]
+}

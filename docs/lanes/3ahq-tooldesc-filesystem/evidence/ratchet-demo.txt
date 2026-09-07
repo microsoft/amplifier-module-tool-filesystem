@@ -1,0 +1,26 @@
+# Ratchet demonstration (fail-before / pass-after) -- 2026-09-07T18:31:20Z
+# Proves the pin test is a real guard, not decoration.
+
+### 1. GREEN at head
+..............................                                           [100%]
+30 passed in 0.27s
+
+### 2. MUTATE: un-restore the edit_file fidelity clause (the exact regression the pin guards)
+
+### 3. RED: pin test fails
+=========================== short test summary info ============================
+FAILED tests/test_tool_description_pin.py::test_description_matches_pin_byte_for_byte[edit_file]
+FAILED tests/test_tool_description_pin.py::test_restored_clause_survives_in_the_live_description
+2 failed, 28 passed in 0.05s
+
+### 4. RED: the independent fidelity re-check also fires, reproducing zc6t's ALWAYS flag
+FAIL: 1 flag(s) with no recorded human verdict.
+edit_file       1345     887     458  ['ALWAYS', 'content']
+  edit_file / 'ALWAYS': *** UNREVIEWED ***
+
+### 5. REVERT
+
+### 6. GREEN again
+..............................                                           [100%]
+30 passed in 0.03s
+fidelity_recheck: exit 0
