@@ -1,0 +1,43 @@
+$ uv run --with pytest --with pytest-asyncio --with amplifier-core pytest -v
+============================= test session starts ==============================
+platform linux -- Python 3.13.11, pytest-9.1.1, pluggy-1.6.0 -- /home/bkrabach/.cache/uv/builds-v0/.tmp4zaKBS/bin/python
+cachedir: .pytest_cache
+rootdir: /home/bkrabach/dev/hw-model-performance/lanes/3ahq-tooldesc-filesystem/amplifier-module-tool-filesystem
+configfile: pyproject.toml
+testpaths: tests
+plugins: asyncio-1.4.0, amplifier-core-1.6.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 30 items
+
+tests/test_behavioral.py::TestFilesystemToolBehavior::test_mount_succeeds PASSED [  3%]
+tests/test_behavioral.py::TestFilesystemToolBehavior::test_tool_has_name PASSED [  6%]
+tests/test_behavioral.py::TestFilesystemToolBehavior::test_tool_has_description PASSED [ 10%]
+tests/test_behavioral.py::TestFilesystemToolBehavior::test_tool_has_execute_method PASSED [ 13%]
+tests/test_behavioral.py::TestFilesystemToolBehavior::test_execute_returns_tool_result PASSED [ 16%]
+tests/test_behavioral.py::TestFilesystemToolBehavior::test_tool_result_has_required_fields PASSED [ 20%]
+tests/test_behavioral.py::TestFilesystemToolBehavior::test_invalid_input_returns_error_result PASSED [ 23%]
+tests/test_newline_preservation.py::test_detect_newline PASSED           [ 26%]
+tests/test_newline_preservation.py::test_write_preserving_lf_is_byte_identical PASSED [ 30%]
+tests/test_newline_preservation.py::test_write_preserving_restores_crlf PASSED [ 33%]
+tests/test_newline_preservation.py::test_write_preserving_no_crlf_doubling PASSED [ 36%]
+tests/test_newline_preservation.py::test_read_preserving_detects_and_normalizes PASSED [ 40%]
+tests/test_newline_preservation.py::test_edit_preserves_crlf PASSED      [ 43%]
+tests/test_newline_preservation.py::test_edit_preserves_lf PASSED        [ 46%]
+tests/test_newline_preservation.py::test_write_preserves_existing_crlf_on_overwrite PASSED [ 50%]
+tests/test_newline_preservation.py::test_write_new_file_is_lf PASSED     [ 53%]
+tests/test_newline_preservation.py::test_detect_newline_is_by_count_not_first_appearance PASSED [ 56%]
+tests/test_newline_preservation.py::test_write_preserving_lf_writes_verbatim PASSED [ 60%]
+tests/test_newline_preservation.py::test_edit_mostly_lf_file_does_not_reflow_to_crlf PASSED [ 63%]
+tests/test_newline_preservation.py::test_write_new_file_preserves_caller_crlf PASSED [ 66%]
+tests/test_path_validation.py::test_is_in_path_list_expands_tilde_in_path_list PASSED [ 70%]
+tests/test_tool_description_pin.py::test_description_matches_pin_byte_for_byte[read_file] PASSED [ 73%]
+tests/test_tool_description_pin.py::test_description_matches_pin_byte_for_byte[write_file] PASSED [ 76%]
+tests/test_tool_description_pin.py::test_description_matches_pin_byte_for_byte[edit_file] PASSED [ 80%]
+tests/test_tool_description_pin.py::test_ships_the_v1_lean_text_unchanged[read_file] PASSED [ 83%]
+tests/test_tool_description_pin.py::test_ships_the_v1_lean_text_unchanged[write_file] PASSED [ 86%]
+tests/test_tool_description_pin.py::test_edit_file_restoration_is_the_only_deviation_from_v1 PASSED [ 90%]
+tests/test_tool_description_pin.py::test_restored_clause_survives_in_the_live_description PASSED [ 93%]
+tests/test_tool_description_pin.py::test_no_description_regrew_a_bulleted_usage_block PASSED [ 96%]
+tests/test_validation.py::TestFilesystemToolStructural::test_structural_validation PASSED [100%]
+
+============================== 30 passed in 0.05s ==============================

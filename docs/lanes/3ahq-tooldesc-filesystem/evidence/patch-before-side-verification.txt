@@ -1,0 +1,11 @@
+$ python3 docs/lanes/3ahq-tooldesc-filesystem/tools/verify_patch_before_side.py
+stock ref (merge-base): aeadf4e3d1e2308415166ebccdad7fda17d6db04
+
+read_file   before= 1074 after=  725 eof_splits=1  after==lean.txt: True  before==merge_base_stock: True
+write_file  before=  867 after=  567 eof_splits=1  after==lean.txt: True  before==merge_base_stock: True
+edit_file   before= 1345 after=  887 eof_splits=1  after==lean.txt: True  before==merge_base_stock: True
+grep        before= 1364 after= 1009 eof_splits=0  after==lean.txt: True  before: NO TARGET IN THIS REPO (lives in amplifier-module-tool-search) -- see FINDINGS.md F1
+glob        before=  904 after=  584 eof_splits=1  after==lean.txt: True  before: NO TARGET IN THIS REPO (lives in amplifier-module-tool-search) -- see FINDINGS.md F1
+
+PASS -- every patch reconstructed exactly; no fuzz used, none needed.
+exit=0
