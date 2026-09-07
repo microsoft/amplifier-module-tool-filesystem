@@ -53,7 +53,7 @@ Two deliberate defects, one per job, so each job proved its own gate:
 - `docs/lanes/j1e6-ci-tool-filesystem/red_proof_lint_DELETE_ME.py` — unused import.
   The lint job failed on ruff `F401`, `Found 1 error.`
 
-Verbatim failed-job log committed at `evidence/red-run-34155616639.log`.
+Verbatim failed-job log committed at `evidence/red-run-34155616639.job-log.txt`.
 
 **GREEN run: <https://github.com/microsoft/amplifier-module-tool-filesystem/actions/runs/GREEN_RUN_ID>**
 (see PR body for the authoritative pair)

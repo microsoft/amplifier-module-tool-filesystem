@@ -1,0 +1,166 @@
+pytest (windows-latest, py3.12)	Run test suite	﻿2026-09-07T19:27:11.2957606Z ##[group]Run uv run --frozen pytest -q
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.2958012Z [36;1muv run --frozen pytest -q[0m
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3050000Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3050378Z env:
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3050601Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3050887Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3051130Z   UV_PYTHON: 3.12
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3051507Z   VIRTUAL_ENV: D:\a\amplifier-module-tool-filesystem\amplifier-module-tool-filesystem\.venv
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3051976Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:11.3052220Z ##[endgroup]
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7976933Z ..............................F                                          [100%]
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7977584Z ================================== FAILURES ===================================
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7977968Z ________________________ test_red_proof_this_must_fail ________________________
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7978537Z 
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7978679Z     def test_red_proof_this_must_fail():
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7979356Z >       assert 1 == 2, "deliberate red-proof failure -- the CI test job is executing the real suite"
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7980219Z E       AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7980838Z E       assert 1 == 2
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7980999Z 
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7981135Z tests\test_zz_red_proof_DELETE_ME.py:10: AssertionError
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7981484Z =========================== short test summary info ===========================
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7982519Z FAILED tests/test_zz_red_proof_DELETE_ME.py::test_red_proof_this_must_fail - AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7983148Z assert 1 == 2
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.7983333Z 1 failed, 30 passed in 0.31s
+pytest (windows-latest, py3.12)	Run test suite	2026-09-07T19:27:13.9482870Z ##[error]Process completed with exit code 1.
+pytest (windows-latest, py3.13)	Run test suite	﻿2026-09-07T19:27:11.8757857Z ##[group]Run uv run --frozen pytest -q
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8758310Z [36;1muv run --frozen pytest -q[0m
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8858536Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8859311Z env:
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8859582Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8859906Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8860144Z   UV_PYTHON: 3.13
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8860525Z   VIRTUAL_ENV: D:\a\amplifier-module-tool-filesystem\amplifier-module-tool-filesystem\.venv
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8861002Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:11.8861262Z ##[endgroup]
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3764486Z ..............................F                                          [100%]
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3764982Z ================================== FAILURES ===================================
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3765391Z ________________________ test_red_proof_this_must_fail ________________________
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3765747Z 
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3765855Z     def test_red_proof_this_must_fail():
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3766303Z >       assert 1 == 2, "deliberate red-proof failure -- the CI test job is executing the real suite"
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3766927Z E       AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3767375Z E       assert 1 == 2
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3767507Z 
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3767643Z tests\test_zz_red_proof_DELETE_ME.py:10: AssertionError
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3768001Z =========================== short test summary info ===========================
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3769117Z FAILED tests/test_zz_red_proof_DELETE_ME.py::test_red_proof_this_must_fail - AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3769765Z assert 1 == 2
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.3769962Z 1 failed, 30 passed in 0.31s
+pytest (windows-latest, py3.13)	Run test suite	2026-09-07T19:27:14.5488058Z ##[error]Process completed with exit code 1.
+pytest (ubuntu-latest, py3.12)	Run test suite	﻿2026-09-07T19:27:04.0166649Z ##[group]Run uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.0167376Z [36;1muv run --frozen pytest -q[0m
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.0209981Z shell: /usr/bin/bash -e {0}
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.0210362Z env:
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.0210658Z   UV_PYTHON: 3.12
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.0211301Z   VIRTUAL_ENV: /home/runner/work/amplifier-module-tool-filesystem/amplifier-module-tool-filesystem/.venv
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.0212072Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.0212528Z ##[endgroup]
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9986384Z ..............................F                                          [100%]
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9987290Z =================================== FAILURES ===================================
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9988331Z ________________________ test_red_proof_this_must_fail _________________________
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9988947Z 
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9989165Z     def test_red_proof_this_must_fail():
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9990064Z >       assert 1 == 2, "deliberate red-proof failure -- the CI test job is executing the real suite"
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9991425Z E       AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9992331Z E       assert 1 == 2
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9992601Z 
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9992900Z tests/test_zz_red_proof_DELETE_ME.py:10: AssertionError
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9993635Z =========================== short test summary info ============================
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9995927Z FAILED tests/test_zz_red_proof_DELETE_ME.py::test_red_proof_this_must_fail - AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9997333Z assert 1 == 2
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:04.9997757Z 1 failed, 30 passed in 0.19s
+pytest (ubuntu-latest, py3.12)	Run test suite	2026-09-07T19:27:05.0467536Z ##[error]Process completed with exit code 1.
+Lint (ruff 0.15.11)	Lint	﻿2026-09-07T19:27:01.3939750Z ##[group]Run uvx ruff@0.15.11 check .
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.3940147Z [36;1muvx ruff@0.15.11 check .[0m
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.3985913Z shell: /usr/bin/bash -e {0}
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.3986230Z env:
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.3986533Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.3986887Z ##[endgroup]
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.6687319Z Downloading ruff (10.8MiB)
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.7921912Z  Downloaded ruff
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.7942597Z Installed 1 package in 1ms
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8483327Z F401 [*] `os` imported but unused
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8484686Z  --> docs/lanes/j1e6-ci-tool-filesystem/red_proof_lint_DELETE_ME.py:3:8
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8490171Z   |
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8491622Z 1 | """DELIBERATE ruff violation -- red-proof for the lint job. Scratch branch only."""
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8492385Z 2 |
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8492782Z 3 | import os
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8493121Z   |        ^^
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8493425Z   |
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8493775Z help: Remove unused import: `os`
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8494384Z 
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8494570Z Found 1 error.
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8494931Z [*] 1 fixable with the `--fix` option.
+Lint (ruff 0.15.11)	Lint	2026-09-07T19:27:01.8530050Z ##[error]Process completed with exit code 1.
+pytest (windows-latest, py3.11)	Run test suite	﻿2026-09-07T19:27:11.5564472Z ##[group]Run uv run --frozen pytest -q
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5564880Z [36;1muv run --frozen pytest -q[0m
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5660159Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5660535Z env:
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5660762Z   UV_TOOL_BIN_DIR: D:\a\_temp\uv-tool-bin-dir
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5661075Z   UV_TOOL_DIR: D:\a\_temp\uv-tool-dir
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5661318Z   UV_PYTHON: 3.11
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5661702Z   VIRTUAL_ENV: D:\a\amplifier-module-tool-filesystem\amplifier-module-tool-filesystem\.venv
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5662182Z   UV_CACHE_DIR: D:\a\_temp\setup-uv-cache
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:11.5662436Z ##[endgroup]
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6333812Z ..............................F                                          [100%]
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6334513Z ================================== FAILURES ===================================
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6335115Z ________________________ test_red_proof_this_must_fail ________________________
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6335633Z 
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6335776Z     def test_red_proof_this_must_fail():
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6336452Z >       assert 1 == 2, "deliberate red-proof failure -- the CI test job is executing the real suite"
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6337432Z E       AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6338099Z E       assert 1 == 2
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6338287Z 
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6338477Z tests\test_zz_red_proof_DELETE_ME.py:10: AssertionError
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6339027Z =========================== short test summary info ===========================
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6340661Z FAILED tests/test_zz_red_proof_DELETE_ME.py::test_red_proof_this_must_fail - AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6341803Z assert 1 == 2
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.6342110Z 1 failed, 30 passed in 0.31s
+pytest (windows-latest, py3.11)	Run test suite	2026-09-07T19:27:13.7856417Z ##[error]Process completed with exit code 1.
+pytest (ubuntu-latest, py3.11)	Run test suite	﻿2026-09-07T19:27:06.3650119Z ##[group]Run uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:06.3650490Z [36;1muv run --frozen pytest -q[0m
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:06.3686143Z shell: /usr/bin/bash -e {0}
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:06.3686417Z env:
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:06.3686606Z   UV_PYTHON: 3.11
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:06.3687084Z   VIRTUAL_ENV: /home/runner/work/amplifier-module-tool-filesystem/amplifier-module-tool-filesystem/.venv
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:06.3687652Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:06.3687962Z ##[endgroup]
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3215827Z ..............................F                                          [100%]
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3216543Z =================================== FAILURES ===================================
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3217320Z ________________________ test_red_proof_this_must_fail _________________________
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3217768Z 
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3217941Z     def test_red_proof_this_must_fail():
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3218679Z >       assert 1 == 2, "deliberate red-proof failure -- the CI test job is executing the real suite"
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3219801Z E       AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3220611Z E       assert 1 == 2
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3220847Z 
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3221108Z tests/test_zz_red_proof_DELETE_ME.py:10: AssertionError
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3221762Z =========================== short test summary info ============================
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3223212Z FAILED tests/test_zz_red_proof_DELETE_ME.py::test_red_proof_this_must_fail - AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3224410Z assert 1 == 2
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3224760Z 1 failed, 30 passed in 0.16s
+pytest (ubuntu-latest, py3.11)	Run test suite	2026-09-07T19:27:07.3595975Z ##[error]Process completed with exit code 1.
+pytest (ubuntu-latest, py3.13)	Run test suite	﻿2026-09-07T19:27:06.1655029Z ##[group]Run uv run --frozen pytest -q
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:06.1655418Z [36;1muv run --frozen pytest -q[0m
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:06.1678326Z shell: /usr/bin/bash -e {0}
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:06.1678620Z env:
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:06.1678835Z   UV_PYTHON: 3.13
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:06.1679283Z   VIRTUAL_ENV: /home/runner/work/amplifier-module-tool-filesystem/amplifier-module-tool-filesystem/.venv
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:06.1679805Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:06.1680118Z ##[endgroup]
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1712058Z ..............................F                                          [100%]
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1712978Z =================================== FAILURES ===================================
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1713780Z ________________________ test_red_proof_this_must_fail _________________________
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1714497Z 
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1714728Z     def test_red_proof_this_must_fail():
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1715632Z >       assert 1 == 2, "deliberate red-proof failure -- the CI test job is executing the real suite"
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1717006Z E       AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1718084Z E       assert 1 == 2
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1718360Z 
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1718643Z tests/test_zz_red_proof_DELETE_ME.py:10: AssertionError
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1719398Z =========================== short test summary info ============================
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1721065Z FAILED tests/test_zz_red_proof_DELETE_ME.py::test_red_proof_this_must_fail - AssertionError: deliberate red-proof failure -- the CI test job is executing the real suite
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1722302Z assert 1 == 2
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.1722630Z 1 failed, 30 passed in 0.14s
+pytest (ubuntu-latest, py3.13)	Run test suite	2026-09-07T19:27:07.2171781Z ##[error]Process completed with exit code 1.
