@@ -152,7 +152,18 @@ the ratchet demonstration. This repo is one of the 18 in `j1e6`; that CI lane is
 sequenced **after** this one deliberately, so CI executes a suite containing the
 pin rather than one that predates it.
 
-### 6. Draft PR — **DONE.** See `publication` in `DONE.json` (read back from the remote, not from local `git log`). **Not merged; the manager merges.**
+### 6. Draft PR — **DONE**
+
+**https://github.com/microsoft/amplifier-module-tool-filesystem/pull/12**
+
+Opened with `gh pr create --draft` (Procedure 4), then marked ready for review
+because the local suite is green — which is what the deliverable asks for
+("DRAFT PR, marked ready when the local suite is green"). **Not merged. The
+manager merges.**
+
+The `publication` block in `DONE.json` carries values **read back from the
+remote** by `publication_readback.sh` (`git ls-remote` + `gh pr list`), not values
+taken from local `git log` — the failure mode lane 74w shipped.
 
 ### 7. DONE-NOTE at the lane artifact root — **DONE.** This file, at
 `docs/lanes/3ahq-tooldesc-filesystem/DONE-NOTE.md`. The repo-root `DONE-NOTE.md`
