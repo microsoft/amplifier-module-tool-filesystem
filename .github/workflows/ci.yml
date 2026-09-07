@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only token -- nothing here needs write access, and nothing here needs a
+# secret. No LLM-backed validation is wired into CI on purpose: it would need
+# API keys and cost money per run.
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint -- ruff, at a PINNED version.
+  #
+  # The pin is load-bearing, not fussiness. "ruff's default rules" is a moving
+  # target: measured on this tree at f4d9b22, ruff 0.15.11 reports 1 finding
+  # while ruff 0.16.6 reports 15 -- same code, same command. An unpinned linter
+  # turns an unrelated upstream release into a red PR nobody changed anything
+  # to cause.
+  #
+  # 0.15.11 is the version this family already resolves to (it is what
+  # amplifier-bundle-context-intelligence's committed uv.lock pins, and what
+  # amplifier-bundle-routing-matrix's CI pins explicitly).
+  #
+  # The rule SELECTION is deliberately NOT narrowed -- this is a bare
+  # `ruff check .` over the whole tree, ruff's own defaults, no --select and no
+  # excludes. The one genuine finding on clean main (F401, an unused import in
+  # a committed lane script) was fixed as its own commit rather than linted
+  # around; a gate you weaken to make green is not a gate.
+  #
+  # `ruff format --check` is deliberately NOT wired here. At 0.15.11 it would
+  # reformat 4 files (amplifier_module_tool_filesystem/__init__.py,
+  # tests/test_tool_description_pin.py and two scripts under docs/lanes/). That
+  # is a whitespace-normalisation change and it does not belong in the PR that
+  # introduces CI -- it would collide with every in-flight branch. Naming it
+  # here so the next contributor sees a decision rather than an oversight; the
+  # follow-up diff is purely mechanical: `uvx ruff@0.15.11 format .`
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint (ruff 0.15.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Lint
+        run: uvx ruff@0.15.11 check .
+
+  # ---------------------------------------------------------------------------
+  # The repo's real test suite -- 30 tests across 5 files (path validation,
+  # newline preservation, the byte-for-byte tool-description pins, and the
+  # amplifier-core structural + behavioral conformance suites). This is NOT an
+  # import smoke.
+  #
+  # windows-latest is not decoration here. This module's line-ending surface is
+  # platform-dependent by construction (see `fix: preserve a file's line
+  # endings`, 51aaf2d, and tests/test_newline_preservation.py), and every
+  # description pin is compared as exact BYTES -- tests/pins/.gitattributes
+  # marks those files `* -text` precisely so a Windows checkout cannot rewrite
+  # them out from under the assertion. Both facts are only actually verified if
+  # something runs the suite on Windows.
+  # ---------------------------------------------------------------------------
+  test:
+    name: pytest (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    # This suite is under a second everywhere. A hang must fail LOUDLY and
+    # fast, not sit burning runner time until the 6h default -- a job stuck at
+    # "in_progress" reads as "not done yet" rather than "broken", which is how
+    # a false green gets merged.
+    timeout-minutes: 10
+    strategy:
+      # A Windows failure must not cancel the POSIX legs. Those tell us whether
+      # we regressed the population that works today, which is the more
+      # expensive outcome by far.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # requires-python = ">=3.11" -- cover the floor through current.
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # --frozen: use the committed uv.lock exactly as-is and fail if it would
+      # need updating, so a drifted lockfile is a red run rather than a silent
+      # resolve to something nobody reviewed.
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras --dev
+
+      - name: Run test suite
+        run: uv run --frozen pytest -q
