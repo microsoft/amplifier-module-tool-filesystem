@@ -30,7 +30,8 @@ async def mount(coordinator: ModuleCoordinator, config: dict[str, Any] | None = 
     Returns:
         None
     """
-    config = config or {}
+    # Session defaults must not alter configuration reused by another session.
+    config = dict(config or {})
 
     # Get session.working_dir capability if not explicitly configured
     # This ensures relative paths are resolved against the session's working directory
