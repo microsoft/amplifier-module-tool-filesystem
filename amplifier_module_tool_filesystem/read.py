@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any
+import unicodedata
 
 from amplifier_core import ModuleCoordinator
 from amplifier_core import ToolResult
@@ -26,6 +27,11 @@ Read multiple potentially useful files in parallel in one response."""
         # Read operations are permissive by default (None = allow all paths)
         # This allows reading context files from package installations
         self.allowed_read_paths = config.get("allowed_read_paths")
+        self.denied_read_paths = config.get("denied_read_paths")
+        if self.denied_read_paths is None:
+            self.denied_read_paths = []
+        if not isinstance(self.denied_read_paths, list) or any(not isinstance(path, str) for path in self.denied_read_paths):
+            raise ValueError("denied_read_paths must be a list of paths or null")
         self.coordinator = coordinator
         self.max_line_length = 2000
         self.default_line_limit = 2000
@@ -60,19 +66,39 @@ Read multiple potentially useful files in parallel in one response."""
         If allowed_read_paths is None, all reads are permitted (default).
         Otherwise, checks if path is within any allowed directory or its subdirectories.
         """
-        # No restrictions if allowed_read_paths is None (default)
+        resolved_path = path.resolve()
+        def resolve_policy(value):
+            root = Path(value).expanduser()
+            if not root.is_absolute() and self.working_dir:
+                root = Path(self.working_dir) / root
+            return root.resolve()
+
+        def contains(root, *, denial=False):
+            if resolved_path.is_relative_to(root):
+                return True
+            # Case-insensitive volumes can preserve a different spelling after
+            # resolve(). Compare existing identity, never lowercase every path.
+            for candidate in (resolved_path, *resolved_path.parents):
+                if not denial and (unicodedata.normalize('NFC', str(candidate)).casefold()
+                                   != unicodedata.normalize('NFC', str(root)).casefold()):
+                    continue
+                try:
+                    if candidate.samefile(root):
+                        return True
+                except OSError:
+                    pass
+            return False
+
+        # A deliberate denial wins even when reads are otherwise unrestricted.
+        if any(contains(resolve_policy(denied), denial=True) for denied in self.denied_read_paths):
+            return False
         if self.allowed_read_paths is None:
             return True
 
-        # Check if path is within any allowed directory or its subdirectories
-        resolved_path = path.resolve()
         for allowed in self.allowed_read_paths:
-            allowed_resolved = Path(allowed).resolve()
+            allowed_resolved = resolve_policy(allowed)
             # Allow if allowed_path is a parent of or equal to the target path
-            if (
-                allowed_resolved in resolved_path.parents
-                or allowed_resolved == resolved_path
-            ):
+            if contains(allowed_resolved):
                 return True
         return False
 
@@ -160,7 +186,8 @@ Read multiple potentially useful files in parallel in one response."""
         # Handle directories - return formatted listing
         if path.is_dir():
             try:
-                entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name))
+                entries = sorted((entry for entry in path.iterdir() if self._is_allowed(entry)),
+                                 key=lambda p: (not p.is_dir(), p.name))
                 lines = []
                 for entry in entries:
                     entry_type = "DIR " if entry.is_dir() else "FILE"
