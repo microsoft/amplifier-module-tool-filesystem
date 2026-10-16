@@ -118,7 +118,8 @@ config = {
 **Read operations (read_file)**:
 - Permissive by default (`allowed_read_paths = null` allows all reads)
 - Enables reading context files from package installations
-- Can be restricted with `allowed_read_paths = ["dir1", "dir2"]`
+- Can be restricted with `allowed_read_paths = ["dir1", "dir2"]`; an empty list denies all reads.
+- `denied_read_paths` always wins, including when reads are otherwise unrestricted. Relative policy paths use the session working directory. Denied entries and symlink aliases are omitted from directory listings. Read policy never grants write access.
 
 **Write operations (write_file, edit_file)**:
 - Restrictive by default (`allowed_write_paths = ["."]`)
