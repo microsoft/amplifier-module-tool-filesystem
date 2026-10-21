@@ -14,7 +14,8 @@ WHAT IS PINNED, and against what:
     `docs/lanes/zc6t-lean-head-ship/patches/tool-descriptions/` on
     `microsoft/amplifier-foundation` main (PR #372, 4384805).
 
-`read_file` and `write_file` ship the v1 text unchanged -- pinned equal.
+`write_file` ships the v1 text unchanged. `read_file` replaces the unqualified
+access claim with the tool's configured access policy; its remaining text is pinned.
 
 `edit_file` deliberately does NOT. zc6t's fidelity sweep found exactly one real
 weakening across all 23 targets: the v1 `edit_file` text softened stock's
@@ -50,7 +51,7 @@ PINS = Path(__file__).parent / "pins"
 
 # (tool class, tool name, sha256 of the SHIPPED description, char count)
 CASES = [
-    (ReadTool, "read_file", "a3a6c31fa1acf3617bb22b7fc3de5650a7ab733a3ec5c683b25e0289145de0a5", 725),
+    (ReadTool, "read_file", "2e58b1f388be8dbfff3b7b65f7e58176d26d258409b01fe9e7f31a8839ccda73", 736),
     (WriteTool, "write_file", "319efcd238bbbc0bdc38e42b283f33634b25d588f42867ae9523b6a71fa276bb", 567),
     (EditTool, "edit_file", "e80c838e9c20e0af39ec43d38fbddfedcd012b99a6259c4ac5525683474b1580", 923),
 ]
@@ -81,10 +82,17 @@ def test_description_matches_pin_byte_for_byte(tool_cls, name, digest, chars):
     assert hashlib.sha256(actual.encode("utf-8")).hexdigest() == digest
 
 
-@pytest.mark.parametrize("name", ["read_file", "write_file"])
+@pytest.mark.parametrize("name", ["write_file"])
 def test_ships_the_v1_lean_text_unchanged(name):
     """read_file and write_file ship zc6t's v1 lean text with no deviation."""
     assert _pin(name) == _v1(name)
+
+
+def test_read_description_changes_only_the_access_claim():
+    assert _v1("read_file").replace(
+        "filesystem. Any file is directly accessible.",
+        "filesystem within this tool's configured access policy.",
+    ) == ReadTool.description
 
 
 def test_edit_file_restoration_is_the_only_deviation_from_v1():

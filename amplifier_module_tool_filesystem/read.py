@@ -13,7 +13,7 @@ class ReadTool:
     """Read files from the local filesystem with line numbering and pagination support."""
 
     name = "read_file"
-    description = """Read a file, or list a directory, from the local filesystem. Any file is directly accessible.
+    description = """Read a file, or list a directory, from the local filesystem within this tool's configured access policy.
 
 file_path accepts absolute paths (/home/user/file.md), relative paths (./docs/README.md), @bundle-name:path bundle resources (e.g. @mybundle:docs/README.md), and @mention directories (@mybundle:docs, returns a listing).
 
