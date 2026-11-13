@@ -165,7 +165,7 @@ Read multiple potentially useful files in parallel in one response."""
                 actual = os.fstat(fd)
                 held[index] = actual
                 if (not os.path.samestat(expected, actual)
-                        or (index == len(chain) - 1
+                        or (secure and index == len(chain) - 1
                             and self._file_version(expected) != self._file_version(actual))):
                     raise PermissionError("File identity changed during read authorization")
                 parent_fd = fd

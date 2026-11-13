@@ -531,3 +531,19 @@ async def test_unsearchable_denied_root_preserves_text_not_media(tmp_path, monke
     result = await reader.execute({"file_path": str(image)})
     assert not result.success and "no pixels were sent" in result.output["content"]
     assert media.calls == []
+
+
+@pytest.mark.asyncio
+async def test_text_fallback_does_not_require_path_and_fd_timestamp_equivalence(tmp_path, monkeypatch):
+    target = tmp_path / "text"
+    target.write_text("readable")
+    monkeypatch.setattr(os, "supports_dir_fd", set())
+    # Windows stat/fstat timestamp representations are not equivalent across
+    # supported Python versions. The unqualified text-only lane still checks
+    # regular type and inode identity; it cannot stage images.
+    monkeypatch.setattr(
+        ReadTool, "_file_version",
+        staticmethod(lambda _: pytest.fail("text fallback must not compare timestamps")),
+    )
+    result = await ReadTool({}, coordinator()).execute({"file_path": str(target)})
+    assert result.success and "readable" in result.output["content"]
