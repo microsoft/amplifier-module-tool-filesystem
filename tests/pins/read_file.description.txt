@@ -4,4 +4,6 @@ file_path accepts absolute paths (/home/user/file.md), relative paths (./docs/RE
 
 Reads up to 2000 lines from the start by default; pass offset (1-indexed) and limit for long files. Lines longer than 2000 characters are truncated. Output is cat -n format, line numbers starting at 1; a directory returns a listing of DIR/FILE entries. A file that exists but is empty returns a system-reminder warning in place of contents.
 
+Static PNG/JPEG images use compatible session media handling; otherwise image unavailable (no pixels). Omit offset/limit for images.
+
 Read multiple potentially useful files in parallel in one response.

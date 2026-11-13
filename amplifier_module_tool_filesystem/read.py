@@ -1,6 +1,10 @@
 """ReadTool - Read files from the local filesystem."""
 
+from contextlib import contextmanager, ExitStack
+import io
+import os
 from pathlib import Path
+import stat
 from typing import Any
 import unicodedata
 
@@ -18,6 +22,8 @@ class ReadTool:
 file_path accepts absolute paths (/home/user/file.md), relative paths (./docs/README.md), @bundle-name:path bundle resources (e.g. @mybundle:docs/README.md), and @mention directories (@mybundle:docs, returns a listing).
 
 Reads up to 2000 lines from the start by default; pass offset (1-indexed) and limit for long files. Lines longer than 2000 characters are truncated. Output is cat -n format, line numbers starting at 1; a directory returns a listing of DIR/FILE entries. A file that exists but is empty returns a system-reminder warning in place of contents.
+
+Static PNG/JPEG images use compatible session media handling; otherwise image unavailable (no pixels). Omit offset/limit for images.
 
 Read multiple potentially useful files in parallel in one response."""
 
@@ -113,6 +119,218 @@ Read multiple potentially useful files in parallel in one response."""
             formatted_lines.append(f"{i:6d}\t{line}")
         return "\n".join(formatted_lines)
 
+    @contextmanager
+    def _open_authorized(self, path: Path):
+        """Bind authorization to a regular descriptor, never a decoder pathname.
+
+        Resolve permitted symlinks once, then pin and verify every canonical
+        ancestor. Opening only the leaf with O_NOFOLLOW would still follow a
+        replacement parent symlink. No payload read occurs until verification.
+        Platforms without directory-relative no-follow opens retain ordinary
+        text reads, but must not enable the media path.
+        """
+        policy = self._snapshot_policy()
+        resolved = path.resolve(strict=True)
+        if not self._is_allowed(resolved):
+            raise PermissionError("Access denied by read policy")
+        chain = [*reversed(resolved.parents), resolved]
+        snapshots = [item.stat(follow_symlinks=False) for item in chain]
+        if not stat.S_ISREG(snapshots[-1].st_mode):
+            raise ValueError("Only regular files can be read")
+        secure = (
+            os.open in os.supports_dir_fd
+            and hasattr(os, "O_NOFOLLOW")
+            and hasattr(os, "O_DIRECTORY")
+            and (hasattr(os, "O_PATH") or hasattr(os, "O_SEARCH"))
+        )
+        with ExitStack() as stack:
+            parent_fd = None
+            held = list(snapshots)
+            for index, (item, expected) in enumerate(zip(chain, snapshots)):
+                if not secure and index != len(chain) - 1:
+                    continue
+                flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
+                if secure:
+                    flags |= os.O_NOFOLLOW | os.O_NONBLOCK
+                    if index != len(chain) - 1:
+                        # Traversal needs search, not directory listing access.
+                        flags = (getattr(os, "O_PATH", getattr(os, "O_SEARCH", os.O_RDONLY))
+                                 | os.O_DIRECTORY | os.O_NOFOLLOW
+                                 | getattr(os, "O_CLOEXEC", 0))
+                    fd = os.open(str(item) if parent_fd is None else item.name,
+                                 flags, dir_fd=parent_fd)
+                else:
+                    fd = os.open(str(item), flags | getattr(os, "O_BINARY", 0))
+                stack.callback(os.close, fd)
+                actual = os.fstat(fd)
+                held[index] = actual
+                if (not os.path.samestat(expected, actual)
+                        or (index == len(chain) - 1
+                            and self._file_version(expected) != self._file_version(actual))):
+                    raise PermissionError("File identity changed during read authorization")
+                parent_fd = fd
+            # Verify the still-held descriptor and its whole path binding before
+            # reading even the signature. A rename/replacement is not permission.
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise ValueError("Only regular files can be read")
+            if (not self._descriptor_allowed(chain, held, policy)
+                    or not self._policy_unchanged(policy)
+                    or path.resolve(strict=True) != resolved
+                    or any(not os.path.samestat(expected, item.stat(follow_symlinks=False))
+                           for item, expected in zip(chain, snapshots))):
+                raise PermissionError("Path changed during read authorization")
+            with os.fdopen(os.dup(fd), "rb") as source:
+                yield source, secure and all(entry[3] is not False for entry in policy)
+
+    def _snapshot_policy(self):
+        """Capture roots independently of attacker-controlled target lookups."""
+        result = []
+        for denial, values in ((True, self.denied_read_paths),
+                               (False, self.allowed_read_paths or [])):
+            for value in values:
+                original = Path(value).expanduser()
+                if not original.is_absolute() and self.working_dir:
+                    original = Path(self.working_dir) / original
+                resolved = original.resolve()
+                try:
+                    identity = resolved.stat()
+                except FileNotFoundError:
+                    identity = None
+                except PermissionError:
+                    # Legacy text reads tolerate an inaccessible unrelated root.
+                    # Its unknown alias identity MUST disable image staging.
+                    identity = False
+                result.append((denial, original, resolved, identity))
+        return result
+
+    @staticmethod
+    def _policy_unchanged(policy):
+        for _, original, resolved, identity in policy:
+            if original.resolve() != resolved:
+                return False
+            try:
+                current = resolved.stat()
+            except FileNotFoundError:
+                current = None
+            except PermissionError:
+                if identity is False:
+                    continue
+                return False
+            if identity is False:
+                return False
+            if (current is None) != (identity is None):
+                return False
+            if current is not None and not os.path.samestat(current, identity):
+                return False
+        return True
+
+    def _descriptor_allowed(self, chain, held, policy):
+        """Evaluate deny aliases on held identities, not a second path stat.
+
+        Repeated pathname checks cannot prevent ABA swaps: a decoy can satisfy
+        samefile while a different, denied inode is already open.
+        """
+        allowed = self.allowed_read_paths is None
+        target = chain[-1]
+        for denial, _, root, identity in policy:
+            matches = target.is_relative_to(root)
+            if identity is not None and identity is not False:
+                for candidate, actual in zip(chain, held):
+                    spelling = (unicodedata.normalize("NFC", str(candidate)).casefold()
+                                == unicodedata.normalize("NFC", str(root)).casefold())
+                    if (denial or spelling) and os.path.samestat(actual, identity):
+                        matches = True
+            if matches:
+                if denial:
+                    return False
+                allowed = True
+        return allowed
+
+    @staticmethod
+    def _file_version(info):
+        return (info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+    @staticmethod
+    def _image_kind(header: bytes, path: Path) -> str | None:
+        """Detect image candidates; the media owner must verify the full file."""
+        if header.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "image/png"
+        if header.startswith(b"\xff\xd8\xff"):
+            return "image/jpeg"
+        if (header.startswith((b"GIF87a", b"GIF89a"))
+                or (header.startswith(b"RIFF") and header[8:12] == b"WEBP")):
+            return "unsupported"
+        return {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                ".gif": "unsupported", ".webp": "unsupported"}.get(path.suffix.lower())
+
+    @staticmethod
+    def _image_unavailable(path: Path, reason: str) -> ToolResult:
+        message = f"Image unavailable: {reason}; no pixels were sent."
+        return ToolResult(
+            success=False,
+            output={"file_path": str(path), "is_image": True, "content": message},
+            error={"message": message, "type": "ImageUnavailable"},
+        )
+
+    async def _read_image(self, path, source, kind, input, secure):
+        """Stage authorized original bytes; acceptance belongs to loop posthooks."""
+        if "offset" in input or "limit" in input:
+            return self._image_unavailable(
+                path, "offset and limit are text-line parameters; retry without them"
+            )
+        if kind == "unsupported":
+            return self._image_unavailable(path, "only static PNG/JPEG are supported")
+        if not secure:
+            return self._image_unavailable(
+                path, "secure descriptor-bound image reads are unsupported on this platform"
+            )
+        lookup = getattr(self.coordinator, "get_capability", None)
+        media = lookup("experimental.media.v1") if lookup else None
+        if (type(getattr(media, "version", None)) is not int or media.version != 1
+                or any(not callable(getattr(media, name, None)) for name in
+                       ("ingest", "publish", "validate", "resolve", "prepare_request", "report"))):
+            return self._image_unavailable(
+                path, "compatible session media handling is not installed"
+            )
+        try:
+            # Readiness is a host enablement observation, not a grant created by
+            # this report. A merely present library must not activate producers.
+            readiness = media.report(
+                "tool-filesystem.read_file", event="consumer-ready", outcome="ready",
+                details={"contract": 1, "role": "producer"},
+            )
+            if not isinstance(readiness, dict) or readiness.get("enabled") is not True:
+                return self._image_unavailable(path, "session media delivery is not enabled")
+            before = os.fstat(source.fileno())
+            staged = await media.ingest(
+                {"stream": source, "mime": kind}, source_format="image-bytes",
+                origin=None, policy=None,
+            )
+            # The host-bound origin resolver supplies the actual call identity.
+            # Tool arguments (including extra origin/id/policy fields) never do.
+            if self._file_version(before) != self._file_version(os.fstat(source.fileno())):
+                return self._image_unavailable(path, "source changed during image ingestion")
+            ref = staged["value"]
+            if (not isinstance(ref, dict) or staged["staged_refs"] != [ref]
+                    or set(ref) != {"v", "session_id", "sha256", "mime", "bytes",
+                                    "width", "height", "provenance"}
+                    or ref["mime"] != kind):
+                return self._image_unavailable(path, "incompatible media ingestion result")
+        except Exception:
+            # Decoder/authority errors may contain private staging paths or bytes.
+            # Do not serialize those exceptions or retry ingestion elsewhere.
+            return self._image_unavailable(
+                path, "media validation or staging refused; check session media policy and file integrity"
+            )
+        await self.coordinator.hooks.emit(
+            ARTIFACT_READ, {"path": str(path), "bytes": ref["bytes"]}
+        )
+        return ToolResult(success=True, output={
+            "file_path": str(path), "is_image": True,
+            "content": "Static image staged for post-hook acceptance; pixels have not been sent.",
+            "experimental.media.v1": {"refs": [ref]},
+        })
+
     async def execute(self, input: dict[str, Any]) -> ToolResult:
         """
         Read a file or directory from the filesystem.
@@ -160,7 +378,7 @@ Read multiple potentially useful files in parallel in one response."""
                     success=False, output=error_msg, error={"message": error_msg}
                 )
 
-            path = resolved_path
+            path = Path(resolved_path)
         else:
             path = Path(file_path).expanduser()
             # Resolve relative paths against working_dir (from session.working_dir capability)
@@ -214,8 +432,13 @@ Read multiple potentially useful files in parallel in one response."""
                 )
 
         try:
-            # Read file content
-            content = path.read_text(encoding="utf-8")
+            with self._open_authorized(path) as (source, secure):
+                kind = self._image_kind(source.read(16), path)
+                source.seek(0)
+                if kind:
+                    return await self._read_image(path, source, kind, input, secure)
+                # Preserve read_text's UTF-8 and universal-newline semantics.
+                content = io.TextIOWrapper(source, encoding="utf-8").read()
             lines = content.splitlines()
 
             # Handle offset and limit (convert to 0-indexed)

@@ -15,7 +15,7 @@ WHAT IS PINNED, and against what:
     `microsoft/amplifier-foundation` main (PR #372, 4384805).
 
 `write_file` ships the v1 text unchanged. `read_file` replaces the unqualified
-access claim with the tool's configured access policy; its remaining text is pinned.
+access claim and documents conditional static-image delivery; its remaining text is pinned.
 
 `edit_file` deliberately does NOT. zc6t's fidelity sweep found exactly one real
 weakening across all 23 targets: the v1 `edit_file` text softened stock's
@@ -51,7 +51,7 @@ PINS = Path(__file__).parent / "pins"
 
 # (tool class, tool name, sha256 of the SHIPPED description, char count)
 CASES = [
-    (ReadTool, "read_file", "2e58b1f388be8dbfff3b7b65f7e58176d26d258409b01fe9e7f31a8839ccda73", 736),
+    (ReadTool, "read_file", "71d51c4bdb8002a52269c4d4f803612ab5452a6fda25e1706f32509ba498fb42", 870),
     (WriteTool, "write_file", "319efcd238bbbc0bdc38e42b283f33634b25d588f42867ae9523b6a71fa276bb", 567),
     (EditTool, "edit_file", "e80c838e9c20e0af39ec43d38fbddfedcd012b99a6259c4ac5525683474b1580", 923),
 ]
@@ -88,10 +88,15 @@ def test_ships_the_v1_lean_text_unchanged(name):
     assert _pin(name) == _v1(name)
 
 
-def test_read_description_changes_only_the_access_claim():
+def test_read_description_changes_only_access_and_image_support():
     assert _v1("read_file").replace(
         "filesystem. Any file is directly accessible.",
         "filesystem within this tool's configured access policy.",
+    ).replace(
+        "Read multiple potentially useful files in parallel in one response.",
+        "Static PNG/JPEG images use compatible session media handling; otherwise "
+        "image unavailable (no pixels). Omit offset/limit for images.\n\n"
+        "Read multiple potentially useful files in parallel in one response.",
     ) == ReadTool.description
 
 
