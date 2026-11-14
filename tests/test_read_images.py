@@ -1,6 +1,7 @@
 """Image reads never obtain more authority than ordinary filesystem reads."""
 
 import asyncio
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -140,17 +141,17 @@ async def test_ordinary_text_pagination_empty_and_listing_unchanged(tmp_path):
     assert directory.success and directory.output["entry_count"] == 2
 
 
-@pytest.mark.parametrize("header,suffix,expected", [
-    (b"\x89PNG\r\n\x1a\n", ".dat", "image/png"),
-    (b"\xff\xd8\xff", ".dat", "image/jpeg"),
-    (b"not an image", ".PNG", "image/png"),
-    (b"not an image", ".jpeg", "image/jpeg"),
-    (b"GIF89a", ".dat", "unsupported"),
-    (b"RIFFxxxxWEBP", ".dat", "unsupported"),
-    (b"ordinary text", ".txt", None),
+@pytest.mark.parametrize("header,expected", [
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"not an image", None),
+    (b"", None),
+    (b"GIF89a", "unsupported"),
+    (b"RIFFxxxxWEBP", "unsupported"),
+    (b"ordinary text", None),
 ])
-def test_image_detection_is_not_extension_only(header, suffix, expected):
-    assert ReadTool._image_kind(header, Path("file" + suffix)) == expected
+def test_image_detection_uses_bytes_not_filename(header, expected):
+    assert ReadTool._image_kind(header) == expected
 
 
 class RecordingMedia:
@@ -189,6 +190,149 @@ class RecordingMedia:
             },
         }
         return {"value": ref, "staged_refs": [ref]}
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("suffix", [".png", ".jpg", ".jpeg", ".PNG", ".gif", ".webp"])
+@pytest.mark.parametrize("pagination", [{}, {"offset": 1}, {"limit": 2000},
+                                       {"offset": 1, "limit": 2000},
+                                       {"offset": 2, "limit": 1}])
+@pytest.mark.parametrize("media_kind", ["absent", "enabled", "incompatible"])
+@pytest.mark.parametrize("secure_primitives", [True, False])
+async def test_text_under_image_suffix_retains_text_and_pagination(
+    tmp_path, monkeypatch, suffix, pagination, media_kind, secure_primitives,
+):
+    if not secure_primitives:
+        monkeypatch.setattr(os, "supports_dir_fd", set())
+    media = RecordingMedia() if media_kind == "enabled" else (
+        SimpleNamespace(version=2, ingest=AsyncMock()) if media_kind == "incompatible" else None
+    )
+    host = coordinator(media)
+    reader = ReadTool({"working_dir": str(tmp_path)}, host)
+    target = tmp_path / ("text" + suffix)
+    control = tmp_path / "text.txt"
+    data = "first café\r\nsecond line\r\nthird".encode()
+    target.write_bytes(data)
+    control.write_bytes(data)
+    result = await reader.execute({"file_path": target.name, **pagination})
+    ordinary = await reader.execute({"file_path": control.name, **pagination})
+    assert result.success and ordinary.success
+    assert result.output == {**ordinary.output, "file_path": str(target)}
+    assert "experimental.media.v1" not in result.output
+    assert "is_image" not in result.output
+    assert target.read_bytes() == data
+    if isinstance(media, RecordingMedia):
+        assert media.calls == []
+        media.publish.assert_not_called()
+    elif media is not None:
+        media.ingest.assert_not_called()
+    assert host.hooks.emit.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("suffix", [".png", ".jpg"])
+async def test_empty_file_under_image_suffix_keeps_text_warning(tmp_path, suffix):
+    target = tmp_path / ("empty" + suffix)
+    target.touch()
+    media = RecordingMedia()
+    result = await ReadTool({}, coordinator(media)).execute({"file_path": str(target)})
+    assert result.success and result.output["total_lines"] == 0
+    assert result.output["warning"] == "File exists but has empty contents"
+    assert media.calls == []
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("text", ["GIF87a is a file signature\nsecond line\n",
+                                 "GIF89a is a file signature\nsecond line\n",
+                                 "RIFFxxxxWEBP is a file signature\nsecond line\n"])
+@pytest.mark.parametrize("suffix", [".png", ".jpg", ".gif", ".webp"])
+async def test_ascii_image_signature_text_keeps_ordinary_pagination(tmp_path, text, suffix):
+    target = tmp_path / ("text" + suffix)
+    target.write_text(text)
+    media = RecordingMedia()
+    result = await ReadTool({}, coordinator(media)).execute(
+        {"file_path": str(target), "offset": 2, "limit": 1}
+    )
+    assert result.success and result.output["content"] == "     2\tsecond line"
+    assert "is_image" not in result.output
+    assert media.calls == []
+
+@pytest.mark.asyncio
+async def test_ascii_signature_utf8_text_across_chunk_boundary(tmp_path):
+    target = tmp_path / "text.png"
+    # Split a multi-byte character across the unsupported-signature scan chunks.
+    data = "GIF89a" + "x" * (65535 - 6) + "é\nlast line"
+    target.write_bytes(data.encode())
+    result = await ReadTool({}, coordinator()).execute(
+        {"file_path": str(target), "offset": 2, "limit": 1}
+    )
+    assert result.success and result.output["content"] == "     2\tlast line"
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("pagination", [{}, {"offset": 1, "limit": 2000}])
+async def test_utf8_decodable_binary_gif_is_not_text(tmp_path, pagination):
+    data = bytes.fromhex(
+        "474946383961010000c28000000000000000002c00000000010001000002024401003b"
+    )
+    assert data.decode("utf-8").encode("utf-8") == data
+    target = tmp_path / "image.png"
+    target.write_bytes(data)
+    media = RecordingMedia()
+    host = coordinator(media)
+    result = await ReadTool({}, host).execute({"file_path": str(target), **pagination})
+    assert not result.success and result.error["type"] == "ImageUnavailable"
+    assert "no pixels were sent" in result.output["content"]
+    assert "experimental.media.v1" not in result.output
+    assert media.calls == []
+    host.hooks.emit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_unsupported_binary_scan_is_bounded_before_text_materialization(tmp_path, monkeypatch):
+    target = tmp_path / "huge.gif"
+    with target.open("wb") as output:
+        output.write(b"GIF89a\xff")
+        output.truncate(2**30)
+    reader = ReadTool({}, coordinator(RecordingMedia()))
+    original_open = reader._open_authorized
+    reads = []
+
+    class BoundedSource:
+        def __init__(self, source):
+            self.source = source
+
+        def read(self, size=-1):
+            assert 0 < size <= 64 * 1024, "binary scan must never read the whole file"
+            reads.append(size)
+            return self.source.read(size)
+
+        def seek(self, *args):
+            return self.source.seek(*args)
+
+    @contextmanager
+    def bounded_open(path):
+        with original_open(path) as (source, secure):
+            yield BoundedSource(source), secure
+
+    monkeypatch.setattr(reader, "_open_authorized", bounded_open)
+    result = await reader.execute({"file_path": str(target)})
+    assert not result.success and result.error["type"] == "ImageUnavailable"
+    assert reads == [16, 64 * 1024]
+    assert reader.coordinator.get_capability("").calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("header", [b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff"])
+@pytest.mark.parametrize("suffix", [".png", ".jpg", ".txt"])
+async def test_recognized_image_refusal_never_falls_back_to_text(tmp_path, header, suffix):
+    target = tmp_path / ("image" + suffix)
+    target.write_bytes(header + b"not a valid image")
+    host = coordinator()
+    result = await ReadTool({}, host).execute({"file_path": str(target)})
+    assert not result.success
+    assert result.error["type"] == "ImageUnavailable"
+    assert "no pixels were sent" in result.output["content"]
+    assert "not a valid image" not in str(result)
+    assert "experimental.media.v1" not in result.output
+    host.hooks.emit.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -306,7 +450,7 @@ async def test_cancellation_closes_descriptor_without_publication(tmp_path):
 @pytest.mark.asyncio
 async def test_unsupported_format_truthful_without_decoder(tmp_path):
     target = tmp_path / "image.gif"
-    target.write_bytes(b"GIF89a")
+    target.write_bytes(b"GIF89a\xff")
     media = RecordingMedia()
     result = await ReadTool({}, coordinator(media)).execute({"file_path": str(target)})
     assert not result.success
