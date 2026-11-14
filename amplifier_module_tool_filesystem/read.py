@@ -1,6 +1,7 @@
 """ReadTool - Read files from the local filesystem."""
 
 from contextlib import contextmanager, ExitStack
+import codecs
 import io
 import os
 from pathlib import Path
@@ -251,8 +252,13 @@ Read multiple potentially useful files in parallel in one response."""
         return (info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
     @staticmethod
-    def _image_kind(header: bytes, path: Path) -> str | None:
-        """Detect image candidates; the media owner must verify the full file."""
+    def _image_kind(header: bytes) -> str | None:
+        """Recognize image bytes, never infer a file's contents from its suffix.
+
+        Text named .png/.jpg still follows the existing UTF-8/pagination path.
+        Recognized image signatures never fall back to text after a refusal.
+        The media owner must verify the full original image before staging.
+        """
         if header.startswith(b"\x89PNG\r\n\x1a\n"):
             return "image/png"
         if header.startswith(b"\xff\xd8\xff"):
@@ -260,8 +266,7 @@ Read multiple potentially useful files in parallel in one response."""
         if (header.startswith((b"GIF87a", b"GIF89a"))
                 or (header.startswith(b"RIFF") and header[8:12] == b"WEBP")):
             return "unsupported"
-        return {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-                ".gif": "unsupported", ".webp": "unsupported"}.get(path.suffix.lower())
+        return None
 
     @staticmethod
     def _image_unavailable(path: Path, reason: str) -> ToolResult:
@@ -433,11 +438,35 @@ Read multiple potentially useful files in parallel in one response."""
 
         try:
             with self._open_authorized(path) as (source, secure):
-                kind = self._image_kind(source.read(16), path)
+                kind = self._image_kind(source.read(16))
                 source.seek(0)
-                if kind:
+                if kind and kind != "unsupported":
                     return await self._read_image(path, source, kind, input, secure)
                 # Preserve read_text's UTF-8 and universal-newline semantics.
+                # GIF/WebP markers are ASCII and can also begin ordinary text.
+                # Only refuse that unsupported binary path if UTF-8 decoding
+                # fails or binary control bytes are present. A GIF container can
+                # itself be valid UTF-8; decoding alone is not a text witness.
+                # Validate bounded chunks before normal text materialization.
+                if kind == "unsupported":
+                    decoder = codecs.getincrementaldecoder("utf-8")()
+                    try:
+                        while chunk := source.read(64 * 1024):
+                            text = decoder.decode(chunk)
+                            if any(unicodedata.category(char) == "Cc" and char not in "\t\n\r"
+                                   for char in text):
+                                return self._image_unavailable(
+                                    path, "only static PNG/JPEG are supported"
+                                )
+                        text = decoder.decode(b"", final=True)
+                        if any(unicodedata.category(char) == "Cc" and char not in "\t\n\r"
+                               for char in text):
+                            return self._image_unavailable(
+                                path, "only static PNG/JPEG are supported"
+                            )
+                    except UnicodeDecodeError:
+                        return self._image_unavailable(path, "only static PNG/JPEG are supported")
+                    source.seek(0)
                 content = io.TextIOWrapper(source, encoding="utf-8").read()
             lines = content.splitlines()
 

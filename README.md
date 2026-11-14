@@ -41,8 +41,13 @@ The module is split into three specialized tools, each in its own file following
 
 Read the contents of a file with cat-n style line numbering and pagination support.
 
-Static PNG/JPEG files are detected by signature (or checked when named `.png`,
-`.jpg`, or `.jpeg`). With an enabled, compatible `experimental.media.v1` session
+Static PNG/JPEG files are detected by byte signature, not filename extension.
+Readable UTF-8 text named `.png`, `.jpg`, or another image suffix retains ordinary
+text output, pagination (including explicit defaults), and empty-file warnings.
+ASCII GIF/WebP marker-looking prose also remains text; those unsupported markers
+with invalid UTF-8 or binary control characters are refused, not returned as pixels.
+Recognized image bytes never fall back to text after a media refusal, regardless
+of their filename. With an enabled, compatible `experimental.media.v1` session
 capability, the reader passes the authorized regular-file descriptor to the
 media owner for bounded byte/header/full-decoder validation and private staging.
 Original bytes are not transformed. The tool returns structured refs, not image

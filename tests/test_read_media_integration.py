@@ -86,14 +86,14 @@ async def test_real_decoder_original_bytes_digest_shape_and_private_stage(tmp_pa
 
 
 @pytest.mark.parametrize("case", [
-    "text_png", "truncated_png", "truncated_jpeg", "pixel_limit", "byte_limit",
+    "signature_only_corrupt_png", "truncated_png", "truncated_jpeg", "pixel_limit", "byte_limit",
     "animated_png", "missing_origin", "disabled", "huge_dimensions", "corrupt_png",
 ])
 async def test_real_decoder_rejects_invalid_or_unavailable_images(tmp_path, case):
     data = image_bytes("JPEG" if case == "truncated_jpeg" else "PNG")
     limits = {}
-    if case == "text_png":
-        data = b"not a raster"
+    if case == "signature_only_corrupt_png":
+        data = b"\x89PNG\r\n\x1a\nnot a raster"
     elif case.startswith("truncated"):
         data = data[:len(data) // 2]
     elif case == "pixel_limit":
@@ -124,6 +124,20 @@ async def test_real_decoder_rejects_invalid_or_unavailable_images(tmp_path, case
         assert "experimental.media.v1" not in result.output
         reader.coordinator.hooks.emit.assert_not_called()
         assert source.read_bytes() == data
+    finally:
+        store.close()
+
+@pytest.mark.parametrize("suffix", [".png", ".jpg", ".jpeg"])
+async def test_real_media_capability_does_not_capture_text_with_image_suffix(tmp_path, suffix):
+    source = tmp_path / ("text" + suffix)
+    source.write_text("first\nsecond\n")
+    reader, store = tool(tmp_path)
+    try:
+        # Explicit defaults remain text parameters, even with an enabled decoder.
+        result = await reader.execute({"file_path": source.name, "offset": 1, "limit": 2000})
+        assert result.success and result.output["content"] == "     1\tfirst\n     2\tsecond"
+        assert "experimental.media.v1" not in result.output
+        assert list(store.journal()) == []
     finally:
         store.close()
 
