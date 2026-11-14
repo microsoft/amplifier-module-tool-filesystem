@@ -41,6 +41,26 @@ The module is split into three specialized tools, each in its own file following
 
 Read the contents of a file with cat-n style line numbering and pagination support.
 
+Static PNG/JPEG files are detected by signature (or checked when named `.png`,
+`.jpg`, or `.jpeg`). With an enabled, compatible `experimental.media.v1` session
+capability, the reader passes the authorized regular-file descriptor to the
+media owner for bounded byte/header/full-decoder validation and private staging.
+Original bytes are not transformed. The tool returns structured refs, not image
+bytes or base64; loop posthooks and the host checkpoint own acceptance and
+durability. A staged ref is not proof of model delivery or image understanding.
+Without compatible enabled handling, trusted call identity, decoder support, or
+secure descriptor-relative opening, the result explicitly says image unavailable
+and no pixels sent. PNG/JPEG are the only initial image formats; animated files
+are not supported. Omit both `offset` and `limit` for images; explicit pagination
+is rejected with an actionable retry message rather than silently ignored.
+
+The runtime module imports neither Foundation nor an image decoder. Applications
+must install the capability before tools initialize, bind its origin resolver to
+the actual authorized tool invocation, and enable producers only after qualifying
+the loop/reader/provider/checkpoint path. Mere capability presence is insufficient.
+Host-selected byte/pixel/resource and decoder limits apply; this module adds no
+independent image quota or inference/provider switch.
+
 **Input:**
 
 - `file_path` (string, required): Absolute path to the file to read
@@ -120,6 +140,13 @@ config = {
 - Enables reading context files from package installations
 - Can be restricted with `allowed_read_paths = ["dir1", "dir2"]`; an empty list denies all reads.
 - `denied_read_paths` always wins, including when reads are otherwise unrestricted. Relative policy paths use the session working directory. Denied entries and symlink aliases are omitted from directory listings. Read policy never grants write access.
+- File reads check policy before opening, then verify an opened regular descriptor
+  against canonical ancestor/leaf identities before reading its signature.
+  On POSIX, directory-relative no-follow opens resist parent/leaf symlink swaps.
+  Platforms without those primitives retain text reads but report image unavailable.
+  Nonregular files (devices, sockets and FIFOs) are refused instead of sniffed.
+  Concurrent in-place image writes observed during staging are refused; this is not
+  a filesystem snapshot or protection against privileged concurrent policy changes.
 
 **Write operations (write_file, edit_file)**:
 - Restrictive by default (`allowed_write_paths = ["."]`)
