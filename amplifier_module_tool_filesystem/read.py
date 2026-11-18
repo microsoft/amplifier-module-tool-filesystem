@@ -263,9 +263,10 @@ Read multiple potentially useful files in parallel in one response."""
             return "image/png"
         if header.startswith(b"\xff\xd8\xff"):
             return "image/jpeg"
-        if (header.startswith((b"GIF87a", b"GIF89a"))
-                or (header.startswith(b"RIFF") and header[8:12] == b"WEBP")):
-            return "unsupported"
+        if header.startswith((b"GIF87a", b"GIF89a")):
+            return "image/gif"
+        if header.startswith(b"RIFF") and header[8:12] == b"WEBP":
+            return "image/webp"
         return None
 
     @staticmethod
@@ -283,8 +284,6 @@ Read multiple potentially useful files in parallel in one response."""
             return self._image_unavailable(
                 path, "offset and limit are text-line parameters; retry without them"
             )
-        if kind == "unsupported":
-            return self._image_unavailable(path, "only static PNG/JPEG are supported")
         if not secure:
             return self._image_unavailable(
                 path, "secure descriptor-bound image reads are unsupported on this platform"
@@ -440,33 +439,31 @@ Read multiple potentially useful files in parallel in one response."""
             with self._open_authorized(path) as (source, secure):
                 kind = self._image_kind(source.read(16))
                 source.seek(0)
-                if kind and kind != "unsupported":
+                if kind in {"image/png", "image/jpeg"}:
                     return await self._read_image(path, source, kind, input, secure)
                 # Preserve read_text's UTF-8 and universal-newline semantics.
                 # GIF/WebP markers are ASCII and can also begin ordinary text.
-                # Only refuse that unsupported binary path if UTF-8 decoding
-                # fails or binary control bytes are present. A GIF container can
+                # Route to validated media ingestion if UTF-8 decoding fails
+                # or binary control bytes are present. A GIF container can
                 # itself be valid UTF-8; decoding alone is not a text witness.
                 # Validate bounded chunks before normal text materialization.
-                if kind == "unsupported":
+                if kind:
                     decoder = codecs.getincrementaldecoder("utf-8")()
+                    binary = False
                     try:
                         while chunk := source.read(64 * 1024):
                             text = decoder.decode(chunk)
                             if any(unicodedata.category(char) == "Cc" and char not in "\t\n\r"
                                    for char in text):
-                                return self._image_unavailable(
-                                    path, "only static PNG/JPEG are supported"
-                                )
-                        text = decoder.decode(b"", final=True)
-                        if any(unicodedata.category(char) == "Cc" and char not in "\t\n\r"
-                               for char in text):
-                            return self._image_unavailable(
-                                path, "only static PNG/JPEG are supported"
-                            )
+                                binary = True
+                                break
+                        else:
+                            decoder.decode(b"", final=True)
                     except UnicodeDecodeError:
-                        return self._image_unavailable(path, "only static PNG/JPEG are supported")
+                        binary = True
                     source.seek(0)
+                    if binary:
+                        return await self._read_image(path, source, kind, input, secure)
                 content = io.TextIOWrapper(source, encoding="utf-8").read()
             lines = content.splitlines()
 
