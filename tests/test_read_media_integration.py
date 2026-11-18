@@ -1,7 +1,7 @@
-"""Opt-in candidate-graph tests with the actual Foundation media implementation.
+"""Opt-in tests with the actual Foundation media implementation.
 
-Run with FILESYSTEM_MEDIA_INTEGRATION=1 and the exact reviewed Foundation candidate
-on PYTHONPATH plus its media extra. The runtime module has no Foundation import.
+Run with FILESYSTEM_MEDIA_INTEGRATION=1 and the exact reviewed Foundation revision
+installed with its media extra. The runtime module has no Foundation import.
 """
 
 import hashlib
@@ -16,7 +16,7 @@ import zlib
 import pytest
 
 if os.environ.get("FILESYSTEM_MEDIA_INTEGRATION") != "1":
-    pytest.skip("explicit Foundation media candidate required", allow_module_level=True)
+    pytest.skip("explicit Foundation media qualification required", allow_module_level=True)
 
 from PIL import Image
 from amplifier_foundation.session.media import (
@@ -58,7 +58,10 @@ def image_bytes(fmt):
     return output.getvalue()
 
 
-@pytest.mark.parametrize("fmt,mime", [("PNG", "image/png"), ("JPEG", "image/jpeg")])
+@pytest.mark.parametrize("fmt,mime", [
+    ("PNG", "image/png"), ("JPEG", "image/jpeg"),
+    ("GIF", "image/gif"), ("WEBP", "image/webp"),
+])
 async def test_real_decoder_original_bytes_digest_shape_and_private_stage(tmp_path, fmt, mime):
     data = image_bytes(fmt)
     source = tmp_path / "image.bin"
@@ -127,7 +130,54 @@ async def test_real_decoder_rejects_invalid_or_unavailable_images(tmp_path, case
     finally:
         store.close()
 
-@pytest.mark.parametrize("suffix", [".png", ".jpg", ".jpeg"])
+@pytest.mark.parametrize("fmt", ["GIF", "WEBP"])
+@pytest.mark.parametrize("case", [
+    "corrupt", "truncated", "animated", "pixel_limit", "byte_limit",
+    "missing_origin", "disabled",
+])
+async def test_real_decoder_rejects_invalid_or_unavailable_gif_webp(tmp_path, fmt, case):
+    data = image_bytes(fmt)
+    limits = {}
+    if case == "corrupt":
+        data = b"GIF89a\x00not a raster" if fmt == "GIF" else b"RIFF\x00\x00\x00\x00WEBPnot a raster"
+    elif case == "truncated":
+        data = data[:len(data) // 2]
+    elif case == "animated":
+        output = io.BytesIO()
+        Image.new("RGB", (3, 2), "red").save(
+            output, format=fmt, save_all=True,
+            append_images=[Image.new("RGB", (3, 2), "blue")], duration=100,
+        )
+        data = output.getvalue()
+        with Image.open(io.BytesIO(data)) as image:
+            assert image.n_frames == 2
+    elif case == "pixel_limit":
+        limits["max_pixels"] = 5
+    elif case == "byte_limit":
+        limits["max_bytes"] = 16
+    source = tmp_path / "image.bin"
+    source.write_bytes(data)
+    reader, store = tool(
+        tmp_path, origin=case != "missing_origin", enabled=case != "disabled", **limits,
+    )
+    try:
+        result = await reader.execute({"file_path": source.name})
+        assert not result.success and result.error["type"] == "ImageUnavailable"
+        assert "no pixels were sent" in result.output["content"]
+        assert "experimental.media.v1" not in result.output
+        reader.coordinator.hooks.emit.assert_not_called()
+        assert source.read_bytes() == data
+        # The host retains failed staging attempts for recovery, without
+        # issuing a ref that a producer could publish or send to a model.
+        assert all(
+            entry["state"] == "staging" and entry["ref"] is None
+            for entry in store.journal()
+        )
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize("suffix", [".png", ".jpg", ".jpeg", ".gif", ".webp"])
 async def test_real_media_capability_does_not_capture_text_with_image_suffix(tmp_path, suffix):
     source = tmp_path / ("text" + suffix)
     source.write_text("first\nsecond\n")

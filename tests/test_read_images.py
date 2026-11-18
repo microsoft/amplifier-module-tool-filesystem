@@ -146,8 +146,8 @@ async def test_ordinary_text_pagination_empty_and_listing_unchanged(tmp_path):
     (b"\xff\xd8\xff", "image/jpeg"),
     (b"not an image", None),
     (b"", None),
-    (b"GIF89a", "unsupported"),
-    (b"RIFFxxxxWEBP", "unsupported"),
+    (b"GIF89a", "image/gif"),
+    (b"RIFFxxxxWEBP", "image/webp"),
     (b"ordinary text", None),
 ])
 def test_image_detection_uses_bytes_not_filename(header, expected):
@@ -275,23 +275,21 @@ async def test_utf8_decodable_binary_gif_is_not_text(tmp_path, pagination):
     assert data.decode("utf-8").encode("utf-8") == data
     target = tmp_path / "image.png"
     target.write_bytes(data)
-    media = RecordingMedia()
-    host = coordinator(media)
+    host = coordinator(None)
     result = await ReadTool({}, host).execute({"file_path": str(target), **pagination})
     assert not result.success and result.error["type"] == "ImageUnavailable"
     assert "no pixels were sent" in result.output["content"]
     assert "experimental.media.v1" not in result.output
-    assert media.calls == []
     host.hooks.emit.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_unsupported_binary_scan_is_bounded_before_text_materialization(tmp_path, monkeypatch):
+async def test_binary_scan_is_bounded_before_text_materialization(tmp_path, monkeypatch):
     target = tmp_path / "huge.gif"
     with target.open("wb") as output:
         output.write(b"GIF89a\xff")
         output.truncate(2**30)
-    reader = ReadTool({}, coordinator(RecordingMedia()))
+    reader = ReadTool({}, coordinator(None))
     original_open = reader._open_authorized
     reads = []
 
@@ -316,7 +314,6 @@ async def test_unsupported_binary_scan_is_bounded_before_text_materialization(tm
     result = await reader.execute({"file_path": str(target)})
     assert not result.success and result.error["type"] == "ImageUnavailable"
     assert reads == [16, 64 * 1024]
-    assert reader.coordinator.get_capability("").calls == []
 
 
 @pytest.mark.asyncio
@@ -340,6 +337,7 @@ async def test_recognized_image_refusal_never_falls_back_to_text(tmp_path, heade
 @pytest.mark.parametrize("kind", ["relative", "mention", "symlink"])
 @pytest.mark.parametrize("header,mime", [
     (b"\x89PNG\r\n\x1a\n", "image/png"), (b"\xff\xd8\xff", "image/jpeg"),
+    (b"GIF89a\x00", "image/gif"), (b"RIFF\x00\x00\x00\x00WEBP", "image/webp"),
 ])
 async def test_image_stream_identity_ref_only_and_no_publication(tmp_path, kind, header, mime):
     data = header + b"original-encoded-observation"
@@ -448,14 +446,25 @@ async def test_cancellation_closes_descriptor_without_publication(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_unsupported_format_truthful_without_decoder(tmp_path):
+@pytest.mark.parametrize("unsupported_descriptors", [False, True])
+async def test_binary_gif_truthful_without_media_capability(
+    tmp_path, monkeypatch, unsupported_descriptors,
+):
+    if unsupported_descriptors:
+        monkeypatch.setattr(os, "supports_dir_fd", set())
     target = tmp_path / "image.gif"
     target.write_bytes(b"GIF89a\xff")
-    media = RecordingMedia()
-    result = await ReadTool({}, coordinator(media)).execute({"file_path": str(target)})
-    assert not result.success
-    assert "only static PNG/JPEG" in result.output["content"]
-    assert media.calls == []
+    host = coordinator(None)
+    result = await ReadTool({}, host).execute({"file_path": str(target)})
+    reason = (
+        "compatible session media handling is not installed"
+        if SECURE_OPENS and not unsupported_descriptors
+        else "secure descriptor-bound image reads are unsupported on this platform"
+    )
+    assert not result.success and result.error["type"] == "ImageUnavailable"
+    assert result.output["content"] == f"Image unavailable: {reason}; no pixels were sent."
+    assert "experimental.media.v1" not in result.output
+    host.hooks.emit.assert_not_called()
 
 
 @pytest.mark.asyncio
