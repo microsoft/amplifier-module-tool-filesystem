@@ -446,12 +446,25 @@ async def test_cancellation_closes_descriptor_without_publication(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_binary_gif_truthful_without_media_capability(tmp_path):
+@pytest.mark.parametrize("unsupported_descriptors", [False, True])
+async def test_binary_gif_truthful_without_media_capability(
+    tmp_path, monkeypatch, unsupported_descriptors,
+):
+    if unsupported_descriptors:
+        monkeypatch.setattr(os, "supports_dir_fd", set())
     target = tmp_path / "image.gif"
     target.write_bytes(b"GIF89a\xff")
-    result = await ReadTool({}, coordinator(None)).execute({"file_path": str(target)})
-    assert not result.success
-    assert "session media handling is not installed" in result.output["content"]
+    host = coordinator(None)
+    result = await ReadTool({}, host).execute({"file_path": str(target)})
+    reason = (
+        "compatible session media handling is not installed"
+        if SECURE_OPENS and not unsupported_descriptors
+        else "secure descriptor-bound image reads are unsupported on this platform"
+    )
+    assert not result.success and result.error["type"] == "ImageUnavailable"
+    assert result.output["content"] == f"Image unavailable: {reason}; no pixels were sent."
+    assert "experimental.media.v1" not in result.output
+    host.hooks.emit.assert_not_called()
 
 
 @pytest.mark.asyncio

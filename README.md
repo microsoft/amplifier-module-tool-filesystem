@@ -41,11 +41,11 @@ The module is split into three specialized tools, each in its own file following
 
 Read the contents of a file with cat-n style line numbering and pagination support.
 
-Static PNG/JPEG files are detected by byte signature, not filename extension.
+Static PNG, JPEG, GIF, and WebP files are detected by byte signature, not filename extension.
 Readable UTF-8 text named `.png`, `.jpg`, or another image suffix retains ordinary
 text output, pagination (including explicit defaults), and empty-file warnings.
-ASCII GIF/WebP marker-looking prose also remains text; those unsupported markers
-with invalid UTF-8 or binary control characters are refused, not returned as pixels.
+ASCII GIF/WebP marker-looking prose also remains text; signatures followed by
+invalid UTF-8 or binary control characters instead require validated media ingestion.
 Recognized image bytes never fall back to text after a media refusal, regardless
 of their filename. With an enabled, compatible `experimental.media.v1` session
 capability, the reader passes the authorized regular-file descriptor to the
@@ -55,9 +55,11 @@ bytes or base64; loop posthooks and the host checkpoint own acceptance and
 durability. A staged ref is not proof of model delivery or image understanding.
 Without compatible enabled handling, trusted call identity, decoder support, or
 secure descriptor-relative opening, the result explicitly says image unavailable
-and no pixels sent. PNG/JPEG are the only initial image formats; animated files
-are not supported. Omit both `offset` and `limit` for images; explicit pagination
-is rejected with an actionable retry message rather than silently ignored.
+and no pixels sent. Format acceptance also depends on the media owner, installed
+decoder, and qualified provider route; recognizing a signature does not guarantee
+delivery. Animated files are not supported. Omit both `offset` and `limit` for
+images; explicit pagination is rejected with an actionable retry message rather
+than silently ignored.
 
 The runtime module imports neither Foundation nor an image decoder. Applications
 must install the capability before tools initialize, bind its origin resolver to
